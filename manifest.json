@@ -1,0 +1,18 @@
+{
+  "name": "Mayank Mehra - React Native Developer Portfolio",
+  "short_name": "Mayank Mehra",
+  "description": "Portfolio of Mayank Mehra, React Native Developer and Mobile App Developer in India.",
+  "start_url": "/portfolio/",
+  "scope": "/portfolio/",
+  "display": "standalone",
+  "background_color": "#070b12",
+  "theme_color": "#070b12",
+  "icons": [
+    {
+      "src": "og-image.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

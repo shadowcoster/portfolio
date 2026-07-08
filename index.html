@@ -3,8 +3,108 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mayank Mehra — React Native Developer</title>
-<meta name="description" content="Mayank Mehra, React Native Developer building cross-platform mobile apps for iOS and Android.">
+<title>Mayank Mehra | React Native Developer | Mobile App Developer India</title>
+<meta name="description" content="React Native Developer with 4+ years building iOS and Android apps using TypeScript, Node.js, RTK, Saga, Firebase, and CI/CD.">
+<meta name="keywords" content="Mayank Mehra, React Native Developer, Mobile App Developer India, React Native Developer Pune, React Native Developer Ambala, iOS Android Developer, TypeScript, Redux Saga, Redux Toolkit">
+<meta name="author" content="Mayank Mehra">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://shadowcoster.github.io/portfolio/">
+<meta name="theme-color" content="#070b12">
+
+<meta property="og:title" content="Mayank Mehra | React Native Developer | Mobile App Developer India">
+<meta property="og:description" content="Portfolio of Mayank Mehra, a React Native Developer building high-performance iOS and Android apps with TypeScript, Node.js, Redux, Firebase, and CI/CD.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://shadowcoster.github.io/portfolio/">
+<meta property="og:image" content="https://shadowcoster.github.io/portfolio/og-image.svg">
+<meta property="og:image:alt" content="Mayank Mehra React Native Developer portfolio preview">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mayank Mehra | React Native Developer">
+<meta name="twitter:description" content="React Native Developer building production iOS and Android apps with TypeScript, Node.js, Redux, Firebase, and CI/CD.">
+<meta name="twitter:image" content="https://shadowcoster.github.io/portfolio/og-image.svg">
+<meta name="twitter:image:alt" content="Mayank Mehra React Native Developer portfolio preview">
+
+<link rel="manifest" href="manifest.json">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": "https://shadowcoster.github.io/portfolio/#mayank-mehra",
+      "name": "Mayank Mehra",
+      "jobTitle": "React Native Developer",
+      "url": "https://shadowcoster.github.io/portfolio/",
+      "email": "mailto:mehramayank28@gmail.com",
+      "telephone": "+91-9996727727",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Ambala City",
+        "addressRegion": "Haryana",
+        "addressCountry": "India"
+      },
+      "knowsAbout": [
+        "React Native",
+        "React JS",
+        "TypeScript",
+        "JavaScript",
+        "Node.js",
+        "Express.js",
+        "MongoDB",
+        "Firebase",
+        "Redux Toolkit",
+        "Redux Saga",
+        "Socket.io",
+        "Android",
+        "iOS",
+        "CI/CD",
+        "Stripe",
+        "Razorpay",
+        "Google Maps API"
+      ],
+      "sameAs": [
+        "https://linkedin.com/in/mayank-mehra-47ba901ba",
+        "https://github.com/shadowcoster"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://shadowcoster.github.io/portfolio/#website",
+      "url": "https://shadowcoster.github.io/portfolio/",
+      "name": "Mayank Mehra Portfolio",
+      "description": "Personal portfolio of Mayank Mehra, React Native Developer and Mobile App Developer in India.",
+      "publisher": {
+        "@id": "https://shadowcoster.github.io/portfolio/#mayank-mehra"
+      }
+    },
+    {
+      "@type": "ProfilePage",
+      "@id": "https://shadowcoster.github.io/portfolio/#profile",
+      "url": "https://shadowcoster.github.io/portfolio/",
+      "name": "Mayank Mehra - React Native Developer Portfolio",
+      "about": {
+        "@id": "https://shadowcoster.github.io/portfolio/#mayank-mehra"
+      },
+      "isPartOf": {
+        "@id": "https://shadowcoster.github.io/portfolio/#website"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://shadowcoster.github.io/portfolio/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://shadowcoster.github.io/portfolio/"
+        }
+      ]
+    }
+  ]
+}
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,6 +140,24 @@
   ::selection{ background:var(--cyan); color:#031012; }
 
   a{ color:inherit; text-decoration:none; }
+  a:focus-visible, button:focus-visible, input:focus-visible{
+    outline:2px solid var(--cyan);
+    outline-offset:4px;
+  }
+  .skip-link{
+    position:fixed;
+    left:16px;
+    top:12px;
+    z-index:10000;
+    transform:translateY(-140%);
+    background:var(--cyan);
+    color:#031012;
+    border-radius:6px;
+    padding:10px 14px;
+    font-family:var(--mono);
+    font-weight:700;
+  }
+  .skip-link:focus{ transform:none; }
 
   /* ---------- custom cursor: tech HUD reticle ---------- */
   .has-custom-cursor, .has-custom-cursor *{ cursor:none !important; }
@@ -306,6 +424,13 @@
     margin:0 0 36px;
   }
   .hero p.lede strong{ color:var(--text); font-weight:600; }
+  .seo-summary{
+    max-width:720px;
+    color:var(--text-dim);
+    font-size:.98rem;
+    margin:0 0 28px;
+  }
+  .seo-summary strong{ color:var(--text); }
 
   .btn-row{ display:flex; flex-wrap:wrap; gap:16px; }
   .btn{
@@ -627,6 +752,7 @@
 </head>
 <body>
 
+<a class="skip-link" href="#main-content">Skip to main content</a>
 <canvas id="trail-canvas"></canvas>
 
 <div class="command-overlay" id="command-overlay" aria-hidden="true">
@@ -652,6 +778,8 @@
   </div>
 </header>
 
+<main id="main-content">
+
 <!-- HERO -->
 <section id="about" class="hero">
   <div id="hero-grid"></div>
@@ -670,9 +798,12 @@
       </div>
     </div>
 
-    <h1 class="headline reveal">I build <span class="accent">pixel-perfect</span><br>mobile experiences.</h1>
+    <h1 class="headline reveal">Mayank Mehra — <span class="accent">React Native Developer</span></h1>
     <p class="lede reveal">
-      I'm a <strong>React Native Developer</strong> with over 4 years of experience architecting and shipping high-performance cross-platform apps for iOS and Android from a single codebase — buttery-smooth interactions, resilient state management, and dependable release pipelines.
+      I build pixel-perfect, high-performance mobile experiences for iOS and Android from a single React Native codebase.
+    </p>
+    <p class="seo-summary reveal">
+      I specialize in building scalable <strong>React Native mobile applications</strong> with strong experience in TypeScript, Redux Toolkit, Redux Saga, REST API integration, Firebase, payment gateways, offline-first architecture, and production release pipelines. Based in India with professional experience across Pune, Ambala, and remote product teams.
     </p>
     <div class="btn-row reveal">
       <a href="#projects" class="btn btn-primary magnetic">View my work <i class="fas fa-arrow-right"></i></a>
@@ -686,10 +817,10 @@
           <span class="live-dot" aria-hidden="true"></span>
         </div>
         <div class="metric-grid">
-          <div class="metric"><strong data-count="4">0</strong><span>years shipped</span></div>
-          <div class="metric"><strong data-count="10">0</strong><span>k+ users scaled</span></div>
-          <div class="metric"><strong data-count="6500">0</strong><span>logistics stops</span></div>
-          <div class="metric"><strong data-count="2">0</strong><span>app stores</span></div>
+          <div class="metric"><strong data-count="4" data-suffix="+">4+</strong><span>years shipped</span></div>
+          <div class="metric"><strong data-count="10" data-suffix="K+">10K+</strong><span>users scaled</span></div>
+          <div class="metric"><strong data-count="6500" data-suffix="+">6,500+</strong><span>logistics stops</span></div>
+          <div class="metric"><strong data-count="2" data-suffix="+">2+</strong><span>app store releases</span></div>
         </div>
         <ul class="signal-log">
           <li><b>01</b><span>offline-first mobile architecture</span></li>
@@ -708,7 +839,7 @@
   <div class="wrap">
     <div class="section-head reveal">
       <span class="num">01</span>
-      <h2>Technical Toolbox</h2>
+      <h2>Technical Skills</h2>
     </div>
 
     <div class="core-stack reveal">
@@ -850,12 +981,12 @@
   <div class="wrap" style="max-width:820px;">
     <div class="section-head reveal">
       <span class="num">02</span>
-      <h2>Where I've Worked</h2>
+      <h2>Work Experience</h2>
     </div>
 
     <div class="timeline">
 
-      <div class="job reveal">
+      <article class="job reveal">
         <div class="job-meta">
           <span class="job-date">May 2024 — Present</span>
           <span class="job-badge">current</span>
@@ -867,9 +998,9 @@
           <li>Architected reusable UI components with predictable RTK state management.</li>
           <li>Automated mobile release cycles using GitLab and GitHub CI/CD pipelines.</li>
         </ul>
-      </div>
+      </article>
 
-      <div class="job reveal">
+      <article class="job reveal">
         <div class="job-meta">
           <span class="job-date">May 2023 — May 2024</span>
         </div>
@@ -880,9 +1011,9 @@
           <li>Deployed products cleanly to Google Play Store and Apple App Store.</li>
           <li>Integrated secure API authentication and dynamic data-synchronization flows.</li>
         </ul>
-      </div>
+      </article>
 
-      <div class="job reveal">
+      <article class="job reveal">
         <div class="job-meta">
           <span class="job-date">Nov 2021 — May 2023</span>
         </div>
@@ -893,7 +1024,7 @@
           <li>Leveraged Redux Saga to handle complex asynchronous data sequences cleanly.</li>
           <li>Ensured data integrity and secure coding guidelines across enterprise app workflows.</li>
         </ul>
-      </div>
+      </article>
 
     </div>
   </div>
@@ -906,20 +1037,20 @@
   <div class="wrap">
     <div class="section-head reveal">
       <span class="num">03</span>
-      <h2>Apps I've Built</h2>
+      <h2>Featured Projects</h2>
     </div>
 
     <div class="project-toolbar reveal" aria-label="Project filters">
-      <button class="filter-btn is-active" type="button" data-filter="all">all</button>
-      <button class="filter-btn" type="button" data-filter="enterprise">enterprise</button>
-      <button class="filter-btn" type="button" data-filter="offline">offline</button>
-      <button class="filter-btn" type="button" data-filter="realtime">realtime</button>
-      <button class="filter-btn" type="button" data-filter="commerce">commerce</button>
+      <button class="filter-btn is-active" type="button" data-filter="all" aria-pressed="true">all</button>
+      <button class="filter-btn" type="button" data-filter="enterprise" aria-pressed="false">enterprise</button>
+      <button class="filter-btn" type="button" data-filter="offline" aria-pressed="false">offline</button>
+      <button class="filter-btn" type="button" data-filter="realtime" aria-pressed="false">realtime</button>
+      <button class="filter-btn" type="button" data-filter="commerce" aria-pressed="false">commerce</button>
     </div>
 
     <div class="projects-grid">
 
-      <div class="tilt-card reveal project-card" data-tags="enterprise offline">
+      <article class="tilt-card reveal project-card" data-tags="enterprise offline">
         <div class="proj-head">
           <i class="far fa-folder"></i>
           <i class="fas fa-arrow-up-right-from-square"></i>
@@ -927,9 +1058,9 @@
         <h3>Neo: Employee Benefits</h3>
         <p style="font-size:.9rem;color:var(--text-dim);">Enterprise insurance application servicing 500+ employees, built with an offline-capable architecture for digital health cards, claims, and hospital pathways.</p>
         <div class="stack"><span>React Native</span><span>Node.js</span><span>MongoDB</span><span>RTK</span></div>
-      </div>
+      </article>
 
-      <div class="tilt-card reveal project-card" data-tags="enterprise offline">
+      <article class="tilt-card reveal project-card" data-tags="enterprise offline">
         <div class="proj-head">
           <i class="far fa-folder"></i>
           <i class="fas fa-arrow-up-right-from-square"></i>
@@ -937,9 +1068,9 @@
         <h3>TapApp — Field Operations</h3>
         <p style="font-size:.9rem;color:var(--text-dim);">Paperless workforce operations app scaled for 10K+ users, with GPS tracking, robust offline capability, and secure kiosk-mode styling.</p>
         <div class="stack"><span>React Native</span><span>Redux Saga</span><span>Offline-First</span><span>Kiosk Mode</span></div>
-      </div>
+      </article>
 
-      <div class="tilt-card reveal project-card" data-tags="enterprise realtime">
+      <article class="tilt-card reveal project-card" data-tags="enterprise realtime">
         <div class="proj-head">
           <i class="far fa-folder"></i>
           <i class="fas fa-arrow-up-right-from-square"></i>
@@ -947,9 +1078,9 @@
         <h3>MSFC — Fuel Management</h3>
         <p style="font-size:.9rem;color:var(--text-dim);">Production fuel app enabling real-time routing, dynamic stop updates, and fleet discount pricing across 6,500+ US logistics stops.</p>
         <div class="stack"><span>React Native</span><span>Node.js</span><span>Google Maps API</span><span>RTK</span></div>
-      </div>
+      </article>
 
-      <div class="tilt-card reveal project-card" data-tags="realtime">
+      <article class="tilt-card reveal project-card" data-tags="realtime">
         <div class="proj-head">
           <i class="far fa-folder"></i>
           <i class="fas fa-arrow-up-right-from-square"></i>
@@ -957,9 +1088,9 @@
         <h3>weDo 80 — Web3 Social Platform</h3>
         <p style="font-size:.9rem;color:var(--text-dim);">Web3 platform featuring real-time interactive sockets, tokenized climate actions, and algorithmic content delivery.</p>
         <div class="stack"><span>React Native</span><span>Socket.io</span><span>Web3</span></div>
-      </div>
+      </article>
 
-      <div class="tilt-card reveal project-card" data-tags="commerce enterprise">
+      <article class="tilt-card reveal project-card" data-tags="commerce enterprise">
         <div class="proj-head">
           <i class="far fa-folder"></i>
           <i class="fas fa-arrow-up-right-from-square"></i>
@@ -967,7 +1098,7 @@
         <h3>Dr. Ortho — E-Commerce</h3>
         <p style="font-size:.9rem;color:var(--text-dim);">E-commerce app for a flagship wellness brand, optimizing complex catalog layouts, secure caching, and fluid checkout flows.</p>
         <div class="stack"><span>React Native</span><span>MongoDB</span><span>Razorpay</span><span>REST APIs</span></div>
-      </div>
+      </article>
 
     </div>
   </div>
@@ -979,24 +1110,26 @@
 <section id="contact" class="section contact">
   <div class="wrap" style="max-width:640px;">
     <span class="eyebrow reveal">04 — What's Next?</span>
-    <h2 style="font-family:var(--mono);font-size:2rem;margin:14px 0;" class="reveal">Get In Touch</h2>
+    <h2 style="font-family:var(--mono);font-size:2rem;margin:14px 0;" class="reveal">Contact Mayank</h2>
     <p class="reveal" style="color:var(--text-dim);">
       I'm currently based out of Ambala City, Haryana, and always open to discussing new opportunities, mobile application architecture, or collaborative development pipelines. Drop me an email or find me online.
     </p>
 
     <div class="contact-links reveal">
-      <a href="mailto:mehramayank28@gmail.com" class="magnetic"><i class="far fa-envelope"></i> mehramayank28@gmail.com</a>
+      <a href="mailto:mehramayank28@gmail.com" class="magnetic" aria-label="Email Mayank Mehra at mehramayank28@gmail.com"><i class="far fa-envelope" aria-hidden="true"></i> mehramayank28@gmail.com</a>
       <span class="divider-dot">|</span>
-      <a href="tel:+919996727727" class="magnetic"><i class="fas fa-phone-alt"></i> +91 9996727727</a>
-      <button class="contact-action magnetic" type="button" id="copy-email"><i class="far fa-copy"></i> Copy email</button>
+      <a href="tel:+919996727727" class="magnetic" aria-label="Call Mayank Mehra"><i class="fas fa-phone-alt" aria-hidden="true"></i> +91 9996727727</a>
+      <button class="contact-action magnetic" type="button" id="copy-email"><i class="far fa-copy" aria-hidden="true"></i> Copy email</button>
     </div>
 
     <div class="socials reveal">
-      <a href="https://linkedin.com/in/mayank-mehra-47ba901ba" target="_blank" rel="noopener" class="magnetic"><i class="fab fa-linkedin"></i></a>
-      <a href="https://github.com/shadowcoster" target="_blank" rel="noopener" class="magnetic"><i class="fab fa-github"></i></a>
+      <a href="https://linkedin.com/in/mayank-mehra-47ba901ba" target="_blank" rel="noopener" class="magnetic" aria-label="View Mayank Mehra on LinkedIn"><i class="fab fa-linkedin" aria-hidden="true"></i></a>
+      <a href="https://github.com/shadowcoster" target="_blank" rel="noopener" class="magnetic" aria-label="View Mayank Mehra on GitHub"><i class="fab fa-github" aria-hidden="true"></i></a>
     </div>
   </div>
 </section>
+
+</main>
 
 <footer>
   © 2026 Mayank Mehra — built with HTML, Tailwind-free CSS &amp; a lot of cursor tracking.
@@ -1048,15 +1181,16 @@
 
   function animateCount(el){
     const target = parseInt(el.dataset.count, 10) || 0;
+    const suffix = el.dataset.suffix || '';
     if (el.dataset.done) return;
     el.dataset.done = 'true';
-    if (reduceMotion) { el.textContent = target; return; }
+    if (reduceMotion) { el.textContent = `${target.toLocaleString('en-IN')}${suffix}`; return; }
     const duration = target > 100 ? 1400 : 900;
     const start = performance.now();
     function step(now){
       const p = Math.min((now - start) / duration, 1);
       const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(eased * target).toLocaleString('en-IN');
+      el.textContent = `${Math.round(eased * target).toLocaleString('en-IN')}${suffix}`;
       if (p < 1) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
@@ -1109,7 +1243,11 @@
   filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const filter = btn.dataset.filter;
-      filterBtns.forEach(item => item.classList.toggle('is-active', item === btn));
+      filterBtns.forEach(item => {
+        const active = item === btn;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
       projectCards.forEach(card => {
         const tags = (card.dataset.tags || '').split(' ');
         const show = filter === 'all' || tags.includes(filter);
