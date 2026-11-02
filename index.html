@@ -230,65 +230,48 @@
   }
   .skip-link:focus{ transform:none; }
 
-  /* ---------- custom cursor: liquid orb + orbiting satellite ---------- */
+  /* ---------- custom cursor: neon starship ---------- */
   .has-custom-cursor, .has-custom-cursor *{ cursor:none !important; }
+  .has-custom-cursor input, .has-custom-cursor textarea{ cursor:text !important; }
 
-  .cur-dot, .cur-orb, .cur-sat{ position:fixed; top:0; left:0; pointer-events:none; z-index:9999; will-change:transform; }
-  .cur-dot{
-    width:6px; height:6px; margin:-3px 0 0 -3px;
-    border-radius:50%; background:#fff; mix-blend-mode:difference;
+  .ship, .ship-tag{ position:fixed; top:0; left:0; pointer-events:none; z-index:9999; will-change:transform; }
+  .ship{ width:34px; height:34px; margin:-17px 0 0 -17px; transition:opacity .2s ease; }
+  .ship svg{ width:100%; height:100%; display:block; overflow:visible; filter:drop-shadow(0 0 8px rgba(34,224,224,.65)); }
+  .ship .hull{ fill:#0d1420; stroke:url(#ship-grad); stroke-width:2.2; stroke-linejoin:round; }
+  .ship .cockpit{ fill:var(--cyan); }
+  .ship .flame{ fill:var(--amber); transform-origin:7px 16px; transition:transform .08s linear; filter:drop-shadow(0 0 6px rgba(255,182,72,.9)); }
+  .ship .lock{ fill:none; stroke:var(--magenta); stroke-width:1.4; stroke-dasharray:4 5; opacity:0; transform-origin:16px 16px; transition:opacity .2s ease; animation:spin 2.4s linear infinite; }
+  .ship.is-hover .lock{ opacity:1; }
+  .ship.is-hit svg{ filter:drop-shadow(0 0 12px rgba(255,77,94,.95)); }
+  .ship.is-hit .hull{ stroke:#ff4d5e; }
+  .ship.is-hidden{ opacity:0; }
+  .ship-tag{
+    font-family:var(--mono); font-size:.6rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--bg); background:var(--magenta); border-radius:4px; padding:3px 6px;
+    opacity:0; transition:opacity .18s ease;
   }
-  .cur-orb{
-    width:44px; height:44px; margin:-22px 0 0 -22px;
-    display:grid; place-items:center;
-  }
-  .cur-orb .shell{
-    width:100%; height:100%; border-radius:50%;
-    border:1.5px solid rgba(219,228,240,.55);
-    background:radial-gradient(circle at 35% 30%, rgba(34,224,224,.18), rgba(255,61,148,.06) 60%, transparent 72%);
-    display:grid; place-items:center;
-    transition:width .32s cubic-bezier(.16,1,.3,1), height .32s cubic-bezier(.16,1,.3,1), background .25s ease, border-color .25s ease, border-radius .32s ease;
-  }
-  .cur-orb .label{
-    font-family:var(--mono); font-size:.62rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--bg); opacity:0; transform:scale(.6); transition:opacity .2s ease, transform .25s ease;
-  }
-  .cur-orb.is-hover .shell{
-    width:78px; height:78px; border-color:transparent;
-    background:linear-gradient(135deg, var(--cyan), var(--magenta));
-    box-shadow:0 0 34px rgba(34,224,224,.35);
-  }
-  .cur-orb.is-hover .label{ opacity:1; transform:none; }
-  .cur-orb.is-text .shell{ width:3px; height:30px; border-radius:2px; border-color:transparent; background:var(--cyan); }
-  .cur-orb.is-down .shell{ width:30px; height:30px; border-color:var(--amber); }
-  .cur-orb.is-hit .shell{ border-color:#ff4d5e; background:rgba(255,77,94,.25); }
-  .cur-sat{
-    width:7px; height:7px; margin:-3.5px 0 0 -3.5px; border-radius:50%;
-    background:var(--magenta); box-shadow:0 0 10px var(--magenta), 0 0 22px rgba(255,61,148,.5);
-    transition:opacity .2s ease;
-  }
-  .cur-sat.is-hidden{ opacity:0; }
+  .ship-tag.is-on{ opacity:1; }
 
-  .rush-hud{
+  .blaster-hud{
     position:fixed; right:18px; bottom:18px; z-index:9999;
     display:flex; align-items:center; gap:12px;
-    border:1px solid rgba(255,182,72,.35); border-radius:10px;
-    background:rgba(7,11,18,.78); backdrop-filter:blur(6px);
-    box-shadow:0 0 24px rgba(255,182,72,.10);
+    border:1px solid rgba(255,61,148,.35); border-radius:10px;
+    background:rgba(7,11,18,.8); backdrop-filter:blur(6px);
+    box-shadow:0 0 24px rgba(255,61,148,.12);
     color:var(--text); font-family:var(--mono); font-size:.7rem; letter-spacing:.08em; text-transform:uppercase;
     padding:8px 8px 8px 12px;
   }
-  .rush-hud .title{ color:var(--amber); font-weight:700; }
-  .rush-hud b{ color:var(--text); font-size:.88rem; }
-  .rush-hud .combo{ color:var(--cyan); min-width:2.4em; }
-  .rush-hud .best{ color:var(--text-dim); }
-  .rush-hud button{
+  .blaster-hud .title{ color:var(--magenta); font-weight:700; }
+  .blaster-hud b{ color:var(--text); font-size:.88rem; }
+  .blaster-hud .mult{ color:var(--cyan); min-width:2.2em; }
+  .blaster-hud .best{ color:var(--text-dim); }
+  .blaster-hud button{
     font:inherit; color:var(--text); background:var(--surface-2);
     border:1px solid var(--line); border-radius:6px; padding:5px 8px;
   }
-  .rush-hud button:hover{ border-color:var(--amber); color:var(--amber); }
-  .rush-hud.is-paused{ opacity:.7; }
-  .rush-hud.is-bumped{ animation:hud-bump .3s ease; }
+  .blaster-hud button:hover{ border-color:var(--magenta); color:var(--magenta); }
+  .blaster-hud.is-paused{ opacity:.7; }
+  .blaster-hud.is-bumped{ animation:hud-bump .3s ease; }
 
   #trail-canvas{
     position:fixed; inset:0;
@@ -297,7 +280,7 @@
   }
 
   @media (pointer:coarse){
-    .cur-dot, .cur-orb, .cur-sat, .rush-hud, #trail-canvas{ display:none; }
+    .ship, .ship-tag, .blaster-hud, #trail-canvas{ display:none; }
   }
 
   @keyframes spin{ to{ transform:rotate(360deg); } }
@@ -1186,7 +1169,7 @@
 </main>
 
 <footer>
-  © 2026 Mayank Mehra (Shadow Coster · shadowcoster) — built with HTML, Tailwind-free CSS &amp; a liquid cursor &amp; a tiny UPI game.
+  © 2026 Mayank Mehra (Shadow Coster · shadowcoster) — built with HTML, Tailwind-free CSS &amp; a neon starship cursor &amp; a bug-blasting mini game.
 </footer>
 
 <script>
@@ -1426,26 +1409,36 @@
 
   document.documentElement.classList.add('has-custom-cursor');
 
-  /* liquid orb that stretches with velocity, a precise dot, and an orbiting satellite */
-  const dot = document.createElement('div');
-  dot.className = 'cur-dot';
-  const orb = document.createElement('div');
-  orb.className = 'cur-orb';
-  orb.innerHTML = '<div class="shell"><span class="label"></span></div>';
-  const orbLabel = orb.querySelector('.label');
-  const sat = document.createElement('div');
-  sat.className = 'cur-sat';
+  /* neon starship that turns toward its direction of travel */
+  const ship = document.createElement('div');
+  ship.className = 'ship';
+  ship.innerHTML = `
+    <svg viewBox="0 0 32 32">
+      <defs>
+        <linearGradient id="ship-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#ff3d94"/>
+          <stop offset="1" stop-color="#22e0e0"/>
+        </linearGradient>
+      </defs>
+      <circle class="lock" cx="16" cy="16" r="15"></circle>
+      <path class="flame" d="M9 13 L1 16 L9 19 Z"></path>
+      <path class="hull" d="M30 16 L7 5 L11 16 L7 27 Z"></path>
+      <circle class="cockpit" cx="19" cy="16" r="2.2"></circle>
+    </svg>`;
+  const flame = ship.querySelector('.flame');
+  const tag = document.createElement('div');
+  tag.className = 'ship-tag';
 
-  /* UPI Rush: collect ₹ coins, dodge bugs, click for a shockwave */
+  /* Debug Blaster: shoot drifting error tokens, keep your streak alive */
   const hud = document.createElement('div');
-  hud.className = 'rush-hud';
-  hud.innerHTML = '<span class="title">upi.rush</span><span>₹<b class="score">0</b></span><span class="combo">x1</span><span class="best">best ₹<span class="best-val">0</span></span><button type="button" class="toggle" aria-label="Pause UPI Rush game">pause</button>';
+  hud.className = 'blaster-hud';
+  hud.innerHTML = '<span class="title">debug.blaster</span><span>fixed <b class="score">0</b></span><span class="mult">x1</span><span class="best">best <span class="best-val">0</span></span><button type="button" class="toggle" aria-label="Pause Debug Blaster game">pause</button>';
   const hudScore = hud.querySelector('.score');
-  const hudCombo = hud.querySelector('.combo');
+  const hudMult = hud.querySelector('.mult');
   const hudBest = hud.querySelector('.best-val');
   const hudToggle = hud.querySelector('.toggle');
 
-  document.body.append(dot, orb, sat, hud);
+  document.body.append(ship, tag, hud);
 
   function store(key, value){
     try {
@@ -1455,9 +1448,9 @@
   }
 
   let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
-  let orbX = mouseX, orbY = mouseY;
-  let prevX = mouseX, prevY = mouseY;
-  let satAngle = 0;
+  let shipX = mouseX, shipY = mouseY;
+  let heading = 0;
+  let thrust = 0;
   let hovering = false;
 
   const canvas = document.getElementById('trail-canvas');
@@ -1465,63 +1458,40 @@
   function resizeCanvas(){
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    if (typeof seedCoins === 'function') seedCoins();
   }
 
+  const WORDS = ['null', 'undefined', 'NaN', '404', 'ANR', 'OOM', 'crash', 'leak', 'race', 'timeout'];
   let score = 0;
-  let combo = 1;
-  let best = parseInt(store('upiRushBest'), 10) || 0;
-  let paused = store('upiRushPaused') === '1';
-  let coins = [];
+  let streak = 0;
+  let best = parseInt(store('debugBlasterBest'), 10) || 0;
+  let paused = store('debugBlasterPaused') === '1';
   let bugs = [];
-  let waves = [];
+  let bolts = [];
+  let exhaust = [];
+  let debris = [];
   let popups = [];
-  let shards = [];
-  let lastWave = 0;
+  let firing = false;
+  let lastShot = 0;
   let shieldUntil = 0;
-  hudBest.textContent = best.toLocaleString('en-IN');
 
-  function edgePoint(){
-    const side = Math.floor(Math.random() * 4);
-    const w = window.innerWidth, h = window.innerHeight;
-    if (side === 0) return { x: Math.random() * w, y: -20 };
-    if (side === 1) return { x: w + 20, y: Math.random() * h };
-    if (side === 2) return { x: Math.random() * w, y: h + 20 };
-    return { x: -20, y: Math.random() * h };
-  }
-
-  function randomCoin(){
-    const margin = 80;
-    return {
-      x: margin + Math.random() * Math.max(1, window.innerWidth - margin * 2),
-      y: margin + Math.random() * Math.max(1, window.innerHeight - margin * 2),
-      vx: (Math.random() - .5) * .4,
-      vy: (Math.random() - .5) * .4,
-      phase: Math.random() * Math.PI * 2,
-      born: performance.now()
-    };
-  }
-
-  function seedCoins(){
-    coins = Array.from({ length: 4 }, randomCoin);
-  }
+  function multiplier(){ return Math.min(5, 1 + Math.floor(streak / 3)); }
 
   function spawnBug(){
-    const p = edgePoint();
-    bugs.push({ x: p.x, y: p.y, speed: .7 + Math.random() * .6, wobble: Math.random() * 10 });
-  }
-
-  function burst(x, y, color, count){
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 1.5 + Math.random() * 3;
-      shards.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, t: performance.now(), life: 450 + Math.random() * 250, color });
-    }
+    const w = window.innerWidth, h = window.innerHeight;
+    const side = Math.floor(Math.random() * 4);
+    const x = side === 1 ? w + 40 : side === 3 ? -40 : Math.random() * w;
+    const y = side === 2 ? h + 20 : side === 0 ? -20 : Math.random() * h;
+    const tx = w * (.2 + Math.random() * .6), ty = h * (.2 + Math.random() * .6);
+    const d = Math.hypot(tx - x, ty - y) || 1;
+    const speed = .45 + Math.random() * .5 + Math.min(score / 2000, .6);
+    ctx.font = '700 13px "JetBrains Mono", monospace';
+    const text = WORDS[Math.floor(Math.random() * WORDS.length)];
+    bugs.push({ x, y, vx: (tx - x) / d * speed, vy: (ty - y) / d * speed, text, w: ctx.measureText(text).width + 18, h: 24, born: performance.now() });
   }
 
   function renderHud(){
     hudScore.textContent = score.toLocaleString('en-IN');
-    hudCombo.textContent = `x${combo}`;
+    hudMult.textContent = `x${multiplier()}`;
     hudBest.textContent = best.toLocaleString('en-IN');
     hud.classList.remove('is-bumped');
     void hud.offsetWidth;
@@ -1530,38 +1500,26 @@
 
   function setPaused(value){
     paused = value;
-    store('upiRushPaused', paused ? '1' : '0');
+    store('debugBlasterPaused', paused ? '1' : '0');
     hud.classList.toggle('is-paused', paused);
     hudToggle.textContent = paused ? 'play' : 'pause';
-    hudToggle.setAttribute('aria-label', paused ? 'Resume UPI Rush game' : 'Pause UPI Rush game');
-    if (paused) { bugs = []; waves = []; }
+    hudToggle.setAttribute('aria-label', paused ? 'Resume Debug Blaster game' : 'Pause Debug Blaster game');
+    if (paused) { bugs = []; bolts = []; }
   }
   hudToggle.addEventListener('click', (e) => { e.stopPropagation(); setPaused(!paused); });
+  hudBest.textContent = best.toLocaleString('en-IN');
   if (reduceMotion) { hud.style.display = 'none'; paused = true; } else setPaused(paused);
 
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
   window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
-
   window.addEventListener('mousedown', (e) => {
-    orb.classList.add('is-down');
     if (paused || (e.target instanceof Node && hud.contains(e.target))) return;
-    const now = performance.now();
-    if (now - lastWave < 900) return;
-    lastWave = now;
-    waves.push({ x: e.clientX, y: e.clientY, t: now });
-    bugs = bugs.filter(b => {
-      if (Math.hypot(b.x - e.clientX, b.y - e.clientY) > 150) return true;
-      burst(b.x, b.y, '255,77,94', 12);
-      score += 5 * combo;
-      popups.push({ x: b.x, y: b.y, t: now, text: `+₹${5 * combo}`, color: '255,77,94' });
-      return false;
-    });
-    if (score > best) { best = score; store('upiRushBest', String(best)); }
-    renderHud();
+    firing = true;
+    lastShot = 0;
   });
-  window.addEventListener('mouseup', () => orb.classList.remove('is-down'));
+  window.addEventListener('mouseup', () => { firing = false; });
 
   const heroGrid = document.getElementById('hero-grid');
   window.addEventListener('mousemove', (e) => {
@@ -1574,154 +1532,146 @@
   function lerp(a, b, n){ return (1 - n) * a + n * b; }
 
   function cursorLoop(){
-    orbX = lerp(orbX, mouseX, 0.2);
-    orbY = lerp(orbY, mouseY, 0.2);
-    const vx = mouseX - prevX, vy = mouseY - prevY;
-    prevX = mouseX; prevY = mouseY;
-    const speed = Math.min(Math.hypot(vx, vy), 60);
-    const stretch = hovering || reduceMotion ? 0 : speed / 120;
-    const angle = Math.atan2(vy, vx) * 180 / Math.PI;
-    dot.style.transform = `translate(${mouseX}px, ${mouseY}px)`;
-    orb.style.transform = `translate(${orbX}px, ${orbY}px) rotate(${angle}deg) scale(${1 + stretch}, ${1 - stretch * .6})`;
-    orbLabel.style.transform = hovering ? `rotate(${-angle}deg)` : '';
-    satAngle += reduceMotion ? 0 : 0.05 + speed / 300;
-    const satR = hovering ? 46 : 30;
-    sat.style.transform = `translate(${orbX + Math.cos(satAngle) * satR}px, ${orbY + Math.sin(satAngle) * satR}px)`;
+    const prevX = shipX, prevY = shipY;
+    shipX = lerp(shipX, mouseX, 0.35);
+    shipY = lerp(shipY, mouseY, 0.35);
+    const vx = shipX - prevX, vy = shipY - prevY;
+    const speed = Math.hypot(vx, vy);
+    if (speed > .6) {
+      const target = Math.atan2(vy, vx);
+      let diff = target - heading;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      heading += diff * 0.25;
+    }
+    thrust = lerp(thrust, Math.min(speed / 10, 1.6), 0.3);
+    flame.style.transform = `scaleX(${.35 + thrust + Math.random() * .25})`;
+    ship.style.transform = `translate(${shipX}px, ${shipY}px) rotate(${heading}rad)`;
+    tag.style.transform = `translate(${shipX + 18}px, ${shipY + 18}px)`;
+    if (!reduceMotion && speed > 1.5) {
+      exhaust.push({ x: shipX - Math.cos(heading) * 14, y: shipY - Math.sin(heading) * 14, t: performance.now(), r: 1.5 + Math.random() * 2 });
+      if (exhaust.length > 40) exhaust.shift();
+    }
     requestAnimationFrame(cursorLoop);
   }
   requestAnimationFrame(cursorLoop);
 
-  function drawCoin(c, now){
-    const bob = Math.sin((now - c.born) / 400 + c.phase) * 3;
-    const spin = Math.abs(Math.cos((now - c.born) / 700 + c.phase));
-    const r = 13;
-    ctx.save();
-    ctx.translate(c.x, c.y + bob);
-    ctx.scale(.35 + spin * .65, 1);
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = 'rgba(255,182,72,.8)';
-    const g = ctx.createRadialGradient(-4, -4, 2, 0, 0, r);
-    g.addColorStop(0, '#ffe2a8');
-    g.addColorStop(1, '#ffb648');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(122,72,0,.6)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = '#5a3500';
-    ctx.font = '700 15px Inter, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('₹', 0, 1);
-    ctx.restore();
-  }
-
-  function drawBug(b, now){
-    const jitter = Math.sin(now / 40 + b.wobble) * 1.5;
-    ctx.save();
-    ctx.translate(b.x + jitter, b.y);
-    ctx.rotate(now / 600 + b.wobble);
-    ctx.shadowBlur = 16;
-    ctx.shadowColor = 'rgba(255,77,94,.9)';
-    ctx.strokeStyle = 'rgba(255,77,94,.95)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const a = (Math.PI / 3) * i;
-      const rr = i % 2 ? 7 : 12;
-      ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  function hitBug(b, now){
+    streak++;
+    const gain = 10 * multiplier();
+    score += gain;
+    if (score > best) { best = score; store('debugBlasterBest', String(best)); }
+    popups.push({ x: b.x, y: b.y, t: now, text: `${b.text} fixed +${gain}` });
+    for (let i = 0; i < 16; i++) {
+      const a = Math.random() * Math.PI * 2, s = 1.5 + Math.random() * 3.5;
+      debris.push({ x: b.x, y: b.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: now, life: 400 + Math.random() * 300, color: Math.random() > .5 ? '255,77,94' : '34,224,224' });
     }
-    ctx.closePath();
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255,77,94,.95)';
-    ctx.fillRect(-1.5, -1.5, 3, 3);
-    ctx.restore();
+    renderHud();
   }
 
   function gameLoop(){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const now = performance.now();
+
+    exhaust = exhaust.filter(p => now - p.t < 380);
+    exhaust.forEach(p => {
+      const life = 1 - (now - p.t) / 380;
+      ctx.fillStyle = `rgba(255,182,72,${life * .7})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * life + .5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
     if (!paused) {
-      coins.forEach((c, i) => {
-        c.x += c.vx; c.y += c.vy;
-        if (c.x < 40 || c.x > window.innerWidth - 40) c.vx *= -1;
-        if (c.y < 40 || c.y > window.innerHeight - 40) c.vy *= -1;
-        if (Math.hypot(mouseX - c.x, mouseY - c.y) < 28) {
-          const gain = 10 * combo;
-          score += gain;
-          combo = Math.min(combo + 1, 9);
-          if (score > best) { best = score; store('upiRushBest', String(best)); }
-          popups.push({ x: c.x, y: c.y, t: now, text: `+₹${gain}`, color: '255,182,72' });
-          burst(c.x, c.y, '255,182,72', 14);
-          coins[i] = randomCoin();
-          renderHud();
-        }
+      if (firing && now - lastShot > 140) {
+        lastShot = now;
+        const noseX = shipX + Math.cos(heading) * 16, noseY = shipY + Math.sin(heading) * 16;
+        bolts.push({ x: noseX, y: noseY, vx: Math.cos(heading) * 15, vy: Math.sin(heading) * 15 });
+      }
+
+      const maxBugs = Math.min(6, 3 + Math.floor(score / 300));
+      if (bugs.length < maxBugs && Math.random() < .02) spawnBug();
+
+      const w = window.innerWidth, h = window.innerHeight;
+      bolts = bolts.filter(bolt => {
+        bolt.x += bolt.vx; bolt.y += bolt.vy;
+        if (bolt.x < -20 || bolt.x > w + 20 || bolt.y < -20 || bolt.y > h + 20) return false;
+        const target = bugs.find(b => Math.abs(bolt.x - b.x) < b.w / 2 + 4 && Math.abs(bolt.y - b.y) < b.h / 2 + 4);
+        if (!target) return true;
+        bugs.splice(bugs.indexOf(target), 1);
+        hitBug(target, now);
+        return false;
       });
 
-      const maxBugs = score === 0 ? 0 : Math.min(4, 1 + Math.floor(score / 250));
-      if (bugs.length < maxBugs && Math.random() < .01) spawnBug();
+      bugs = bugs.filter(b => {
+        b.x += b.vx; b.y += b.vy;
+        if (now - b.born > 3000 && (b.x < -80 || b.x > w + 80 || b.y < -60 || b.y > h + 60)) return false;
+        if (Math.abs(mouseX - b.x) < b.w / 2 + 8 && Math.abs(mouseY - b.y) < b.h / 2 + 8 && now > shieldUntil) {
+          shieldUntil = now + 1200;
+          streak = 0;
+          renderHud();
+          ship.classList.add('is-hit');
+          setTimeout(() => ship.classList.remove('is-hit'), 450);
+          popups.push({ x: b.x, y: b.y, t: now, text: 'streak lost', warn: true });
+          return false;
+        }
+        return true;
+      });
 
+      bolts.forEach(bolt => {
+        ctx.strokeStyle = 'rgba(34,224,224,.95)';
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(34,224,224,.9)';
+        ctx.beginPath();
+        ctx.moveTo(bolt.x, bolt.y);
+        ctx.lineTo(bolt.x - bolt.vx * 1.2, bolt.y - bolt.vy * 1.2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      });
+
+      ctx.font = '700 13px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       bugs.forEach(b => {
-        const dx = mouseX - b.x, dy = mouseY - b.y;
-        const d = Math.hypot(dx, dy) || 1;
-        b.x += (dx / d) * b.speed;
-        b.y += (dy / d) * b.speed;
-        if (d < 20 && now > shieldUntil) {
-          shieldUntil = now + 1400;
-          combo = 1;
-          renderHud();
-          burst(mouseX, mouseY, '255,77,94', 18);
-          orb.classList.add('is-hit');
-          setTimeout(() => orb.classList.remove('is-hit'), 400);
-          const p = edgePoint();
-          b.x = p.x; b.y = p.y;
-        }
+        const glitch = Math.random() < .04 ? (Math.random() - .5) * 6 : 0;
+        const x = b.x - b.w / 2 + glitch, y = b.y - b.h / 2;
+        ctx.fillStyle = 'rgba(40,10,18,.85)';
+        ctx.strokeStyle = 'rgba(255,77,94,.9)';
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(255,77,94,.6)';
+        ctx.beginPath();
+        ctx.roundRect(x, y, b.w, b.h, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ff8a96';
+        ctx.fillText(b.text, b.x + glitch, b.y + 1);
       });
-
-      coins.forEach(c => drawCoin(c, now));
-      bugs.forEach(b => drawBug(b, now));
     }
 
-    waves = waves.filter(w => now - w.t < 600);
-    waves.forEach(w => {
-      const life = 1 - (now - w.t) / 600;
-      ctx.strokeStyle = `rgba(34,224,224,${life * .8})`;
-      ctx.lineWidth = 3 * life;
-      ctx.beginPath();
-      ctx.arc(w.x, w.y, 20 + (1 - life) * 130, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.strokeStyle = `rgba(255,61,148,${life * .5})`;
-      ctx.beginPath();
-      ctx.arc(w.x, w.y, 10 + (1 - life) * 90, 0, Math.PI * 2);
-      ctx.stroke();
+    debris = debris.filter(d => now - d.t < d.life);
+    debris.forEach(d => {
+      const life = 1 - (now - d.t) / d.life;
+      d.x += d.vx; d.y += d.vy; d.vx *= .95; d.vy *= .95;
+      ctx.fillStyle = `rgba(${d.color},${life})`;
+      ctx.fillRect(d.x - 1.5, d.y - 1.5, 3, 3);
     });
 
-    shards = shards.filter(s => now - s.t < s.life);
-    shards.forEach(s => {
-      const life = 1 - (now - s.t) / s.life;
-      s.x += s.vx; s.y += s.vy; s.vx *= .94; s.vy *= .94;
-      ctx.fillStyle = `rgba(${s.color},${life})`;
-      ctx.fillRect(s.x - 2, s.y - 2, 4 * life, 4 * life);
-    });
-
-    popups = popups.filter(p => now - p.t < 800);
+    popups = popups.filter(p => now - p.t < 900);
+    ctx.font = '700 12px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
     popups.forEach(p => {
-      const life = 1 - (now - p.t) / 800;
-      ctx.fillStyle = `rgba(${p.color},${life})`;
-      ctx.font = '700 14px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(p.text, p.x, p.y - 18 - (1 - life) * 30);
+      const life = 1 - (now - p.t) / 900;
+      ctx.fillStyle = p.warn ? `rgba(255,77,94,${life})` : `rgba(34,224,224,${life})`;
+      ctx.fillText(p.text, p.x, p.y - 20 - (1 - life) * 26);
     });
 
     requestAnimationFrame(gameLoop);
   }
   requestAnimationFrame(gameLoop);
 
-  /* orb morphs into a labelled pill over interactive elements */
+  /* lock-on ring and an action tag over interactive elements */
   function labelFor(el){
     if (el.dataset.cursor) return el.dataset.cursor;
     if (el.matches('.tilt-card')) return 'view';
@@ -1734,17 +1684,19 @@
   document.querySelectorAll('a, button, .tilt-card').forEach(el => {
     el.addEventListener('mouseenter', () => {
       hovering = true;
-      orbLabel.textContent = labelFor(el);
-      orb.classList.add('is-hover');
+      tag.textContent = labelFor(el);
+      tag.classList.add('is-on');
+      ship.classList.add('is-hover');
     });
     el.addEventListener('mouseleave', () => {
       hovering = false;
-      orb.classList.remove('is-hover');
+      tag.classList.remove('is-on');
+      ship.classList.remove('is-hover');
     });
   });
   document.querySelectorAll('input, textarea').forEach(el => {
-    el.addEventListener('mouseenter', () => { orb.classList.add('is-text'); sat.classList.add('is-hidden'); });
-    el.addEventListener('mouseleave', () => { orb.classList.remove('is-text'); sat.classList.remove('is-hidden'); });
+    el.addEventListener('mouseenter', () => ship.classList.add('is-hidden'));
+    el.addEventListener('mouseleave', () => ship.classList.remove('is-hidden'));
   });
 
   document.querySelectorAll('.tilt-card').forEach(card => {
