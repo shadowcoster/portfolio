@@ -1314,7 +1314,7 @@
       { name: 'contact', n: '05', r0: 950, size: 30, kind: 'ocean', c1: [70,230,225], c2: [30,120,170] }
     ].map((p, i) => Object.assign(p, { r: p.r0, a: i * 1.3 + .5, hv: 0, sx: 0, sy: 0, rad: 0, d: 0 }));
 
-    let W = 0, H = 0, dpr = 1, bg = null, wide = true;
+    let W = 0, H = 0, dpr = 1, bg = null, wide = true, narrow = false, lastTouch = 0;
     const view = { cx: 0, cy: 0, sc: 1, ct: 1, st: 0, rs: 1 };
     const ptr = { x: 0, y: 0, on: false, ui: false };
     const ripples = [];
@@ -1326,6 +1326,7 @@
       W = cv.width = Math.round(window.innerWidth * dpr);
       H = cv.height = Math.round(window.innerHeight * dpr);
       wide = window.innerWidth > 900;
+      narrow = window.innerWidth < 700;
       bg = document.createElement('canvas'); bg.width = W; bg.height = H;
       const b = bg.getContext('2d'), m = Math.max(W, H);
       b.fillStyle = '#03050a'; b.fillRect(0, 0, W, H);
@@ -1391,6 +1392,9 @@
       else { tg.classList.remove('is-on'); if (sh) sh.classList.remove('is-hover'); }
     }
 
+    const orb = r => narrow ? 330 + (r - 380) * .25 : r;
+    const unorb = r => narrow ? 380 + (r - 330) / .25 : r;
+
     function planetUpdate(dt){
       for (const p of planets) {
         if (p === drag) continue;
@@ -1402,9 +1406,9 @@
 
     function pick(px, py){
       let best = null;
-      for (const p of planets) if (Math.hypot(px - p.sx, py - p.sy) < p.rad * 1.2 + 8 * dpr && (!best || p.d < best.d)) best = p;
+      for (const p of planets) if (Math.hypot(px - p.sx, py - p.sy) < p.rad * 1.2 + (narrow ? 16 : 8) * dpr && (!best || p.d < best.d)) best = p;
       if (best) return { p: best };
-      return Math.hypot(px - view.cx, py - view.cy) < view.rs * 1.6 ? { hole: true } : null;
+      return Math.hypot(px - view.cx, py - view.cy) < Math.max(view.rs * 1.6, 40 * dpr) ? { hole: true } : null;
     }
 
     function unproject(px, py){
@@ -1475,16 +1479,16 @@
       planetUpdate(dt);
 
       const tilt = (66 + 4 * Math.sin(t * .11) + my * 4 + sp * 8) * Math.PI / 180;
-      const sc = Math.max(W, H) / 1000 * (1 + .2 * sp), u = dpr * (.8 + .25 * sc / dpr);
+      const sc = Math.max(W, H) / 1000 * (1 + .2 * sp) * (narrow ? .6 : 1), u = dpr * (.8 + .25 * sc / dpr);
       const shake = g * 4 * dpr;
-      const cx = W * (wide ? .72 - .2 * sp : .5) + mx * 18 * dpr + (Math.random() - .5) * shake, cy = H * (.4 + .08 * sp) + (Math.random() - .5) * shake;
+      const cx = W * (wide ? .72 - .2 * sp : .5) + mx * 18 * dpr + (Math.random() - .5) * shake, cy = H * (narrow ? .3 + .1 * sp : .4 + .08 * sp) + (Math.random() - .5) * shake;
       const rs = RS * sc, ct = Math.cos(tilt), st = Math.sin(tilt);
       Object.assign(view, { cx, cy, sc, ct, st, rs });
 
       for (const p of planets) {
-        const y = p.r * Math.sin(p.a), s = F / (F - y * st);
-        p.sx = cx + p.r * Math.cos(p.a) * s * sc; p.sy = cy + y * ct * s * sc; p.d = -y * st;
-        p.rad = p.size * s * sc * (1 + .18 * p.hv);
+        const re = orb(p.r), y = re * Math.sin(p.a), s = F / (F - y * st);
+        p.sx = cx + re * Math.cos(p.a) * s * sc; p.sy = cy + y * ct * s * sc; p.d = -y * st;
+        p.rad = p.size * (narrow ? 1.4 : 1) * s * sc * (1 + .18 * p.hv);
       }
       const hit = ptr.on && !ptr.ui && !drag ? pick(ptr.x, ptr.y) : null;
       const hoverP = drag || (hit && hit.p) || null, hoverHole = holding || (!drag && !!(hit && hit.hole));
@@ -1564,47 +1568,49 @@
         gr.addColorStop(0, 'rgba(4,7,13,.72)'); gr.addColorStop(1, 'rgba(4,7,13,0)');
         c.fillStyle = gr; c.fillRect(0, 0, W, H);
       }
-      c.fillStyle = 'rgba(4,7,13,.1)'; c.fillRect(0, 0, W, H);
+      c.fillStyle = narrow ? 'rgba(4,7,13,.3)' : 'rgba(4,7,13,.1)'; c.fillRect(0, 0, W, H);
       const v = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .4, W / 2, H / 2, Math.max(W, H) * .75);
       v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.55)');
       c.fillStyle = v; c.fillRect(0, 0, W, H);
 
-      c.font = `${11 * dpr}px "JetBrains Mono", ui-monospace, monospace`; c.textAlign = 'center';
+      c.font = `${(narrow ? 10 : 11) * dpr}px "JetBrains Mono", ui-monospace, monospace`; c.textAlign = 'center';
       for (const p of planets) {
         const on = p.hv > .05;
         c.fillStyle = on ? `rgba(34,224,224,${.7 + .3 * p.hv})` : 'rgba(219,228,240,.45)';
         c.fillText(on ? `${p.n} ${p.name} →` : `${p.n} ${p.name}`, p.sx, p.sy + p.rad * (p.kind === 'ring' ? 1.45 : 1.3) + 16 * dpr);
       }
-      if (holeHv > .05) { c.fillStyle = `rgba(255,200,130,${holeHv * .9})`; c.fillText('hold to pull · click to pulse', cx, cy + rs * 1.9 + 14 * dpr); }
+      if (holeHv > .05) { c.fillStyle = `rgba(255,200,130,${holeHv * .9})`; c.fillText(narrow ? 'touch & hold · tap' : 'hold to pull · click to pulse', cx, cy + rs * 1.9 + 14 * dpr); }
     }
 
     resize();
     window.addEventListener('resize', resize);
     if (reduceMotion) return;
 
-    window.addEventListener('mousemove', (e) => {
-      tmx = e.clientX / window.innerWidth * 2 - 1; tmy = e.clientY / window.innerHeight * 2 - 1;
-      ptr.x = e.clientX * dpr; ptr.y = e.clientY * dpr; ptr.on = true;
-      ptr.ui = !!(e.target.closest && e.target.closest('a, button, input, textarea, select, header, .tilt-card, .sg-overlay, .command-overlay'));
+    const UI = 'a, button, input, textarea, select, header, .tilt-card, .sg-overlay, .command-overlay';
+
+    function pointerMove(x, y, target){
+      ptr.x = x * dpr; ptr.y = y * dpr; ptr.on = true;
+      ptr.ui = !!(target && target.closest && target.closest(UI));
       if (drag) {
-        if (!dragMoved && Math.hypot(e.clientX - downX, e.clientY - downY) > 6) dragMoved = true;
+        if (!dragMoved && Math.hypot(x - downX, y - downY) > 6) dragMoved = true;
         if (dragMoved) {
           const q = unproject(ptr.x, ptr.y);
           drag.a = Math.atan2(q.y, q.x);
-          drag.r = drag.r0 = Math.max(300, Math.min(1000, Math.hypot(q.x, q.y)));
+          drag.r = drag.r0 = Math.max(300, Math.min(1000, unorb(Math.hypot(q.x, q.y))));
         }
       }
-    }, { passive: true });
-    document.addEventListener('mouseleave', () => { ptr.on = false; });
-    window.addEventListener('mousedown', (e) => {
-      if (e.button !== 0 || e.target.closest('a, button, input, textarea, select, header, .tilt-card, .sg-overlay, .command-overlay')) return;
-      const h = pick(e.clientX * dpr, e.clientY * dpr);
-      if (!h) return;
-      e.preventDefault();
-      downX = e.clientX; downY = e.clientY; dragMoved = false;
+    }
+
+    function pointerDown(x, y, target){
+      if (target.closest(UI)) return false;
+      const h = pick(x * dpr, y * dpr);
+      if (!h) return false;
+      downX = x; downY = y; dragMoved = false;
       if (h.p) drag = h.p; else { holding = true; holdT0 = performance.now(); }
-    });
-    window.addEventListener('mouseup', () => {
+      return true;
+    }
+
+    function pointerUp(){
       if (drag) {
         const p = drag;
         drag = null;
@@ -1619,7 +1625,37 @@
         ripples.push({ x: view.cx, y: view.cy, col: [255, 200, 130], age: 0, big: true });
         kick = 1;
       }
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      if (performance.now() - lastTouch < 700) return;
+      tmx = e.clientX / window.innerWidth * 2 - 1; tmy = e.clientY / window.innerHeight * 2 - 1;
+      pointerMove(e.clientX, e.clientY, e.target);
+    }, { passive: true });
+    document.addEventListener('mouseleave', () => { ptr.on = false; });
+    window.addEventListener('mousedown', (e) => {
+      if (e.button !== 0 || performance.now() - lastTouch < 700) return;
+      if (pointerDown(e.clientX, e.clientY, e.target)) e.preventDefault();
     });
+    window.addEventListener('mouseup', () => { if (performance.now() - lastTouch >= 700) pointerUp(); });
+
+    /* touch: tap a planet to jump, drag it to re-orbit, press and hold the black hole for gravity; everything else scrolls normally */
+    window.addEventListener('touchstart', (e) => {
+      lastTouch = performance.now();
+      const t0 = e.touches[0];
+      if (e.touches.length > 1) { pointerUp(); return; }
+      pointerMove(t0.clientX, t0.clientY, e.target);
+      if (pointerDown(t0.clientX, t0.clientY, e.target)) e.preventDefault();
+    }, { passive: false });
+    window.addEventListener('touchmove', (e) => {
+      lastTouch = performance.now();
+      const t0 = e.touches[0];
+      pointerMove(t0.clientX, t0.clientY, e.target);
+      if (drag || holding) e.preventDefault();
+    }, { passive: false });
+    const touchEnd = () => { lastTouch = performance.now(); pointerUp(); ptr.on = false; };
+    window.addEventListener('touchend', touchEnd);
+    window.addEventListener('touchcancel', touchEnd);
     window.addEventListener('scroll', () => { tsp = Math.min(1, window.scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight)); }, { passive: true });
 
     let t = 0, last = performance.now();
