@@ -312,6 +312,8 @@
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .sg-text{ color:var(--text-dim); font-size:.92rem; line-height:1.6; margin-bottom:18px; }
+  .sg-quip{ color:var(--text); font-size:.9rem; font-style:italic; line-height:1.5; margin:-6px 0 18px; min-height:1.5em; }
+  .sg-quip:empty{ display:none; }
   .sg-start{
     font-family:var(--mono); font-weight:700; letter-spacing:.1em; text-transform:uppercase;
     background:var(--cyan); color:var(--bg); border:0; border-radius:8px; padding:11px 22px;
@@ -1499,6 +1501,7 @@
     <div class="sg-panel">
       <div class="sg-title"></div>
       <p class="sg-text"></p>
+      <p class="sg-quip" aria-live="polite"></p>
       <button type="button" class="sg-start"></button>
     </div>`;
   const sgCanvas = sg.querySelector('.sg-canvas');
@@ -1511,6 +1514,7 @@
   const panel = sg.querySelector('.sg-panel');
   const panelTitle = sg.querySelector('.sg-title');
   const panelText = sg.querySelector('.sg-text');
+  const panelQuip = sg.querySelector('.sg-quip');
   const startBtn = sg.querySelector('.sg-start');
 
   document.body.append(ship, tag, launcher, sg);
@@ -1522,6 +1526,34 @@
     } catch (e) { return null; }
   }
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  /* Optional local-LLM commentator: talks to Ollama if it is running on this machine, silently does nothing otherwise */
+  const OLLAMA_URL = 'http://localhost:11434/api/generate';
+  const OLLAMA_MODEL = 'gemma3:4b';
+  let quipCtl = null;
+  function quip(el, facts){
+    if (quipCtl) quipCtl.abort();
+    el.textContent = '';
+    const ctl = quipCtl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000);
+    fetch(OLLAMA_URL, {
+      method: 'POST',
+      signal: ctl.signal,
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        stream: false,
+        options: { temperature: .9, num_predict: 60 },
+        prompt: `You are a witty arcade announcer. In ONE short sentence (max 20 words, no emojis, no quotes), react to this player's result: ${facts}`
+      })
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        const t = String(d.response || '').trim().replace(/^["'“‘]+|["'”’]+$/g, '').split('\n')[0];
+        if (t && !ctl.signal.aborted) el.textContent = t;
+      })
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
+  }
 
   let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
   let shipX = mouseX, shipY = mouseY;
@@ -1649,10 +1681,12 @@
       panelTitle.textContent = 'Star Shooter';
       panelText.textContent = 'Fly with your mouse (or arrow keys / WASD). Your ship fires on its own. Blast rocks and alien drones, and grab gold stars to power up your weapon. You have 3 lives.';
       startBtn.textContent = 'launch';
+      panelQuip.textContent = '';
     } else {
       panelTitle.textContent = 'Game over';
       panelText.textContent = `You scored ${sgScore.toLocaleString('en-IN')} and reached level ${level}. ${isBest ? 'New best score!' : `Best: ${best.toLocaleString('en-IN')}.`}`;
       startBtn.textContent = 'play again';
+      quip(panelQuip, `space shooter, score ${sgScore}, level ${level}, ${kills} kills, ${isBest ? 'a new personal best' : `personal best is ${best}`}.`);
     }
     panel.hidden = false;
     startBtn.focus();
@@ -2012,6 +2046,7 @@
     <div class="sg-panel">
       <div class="sg-title"></div>
       <p class="sg-text"></p>
+      <p class="sg-quip" aria-live="polite"></p>
       <button type="button" class="sg-start"></button>
     </div>`;
   document.body.append(hh);
@@ -2025,6 +2060,7 @@
   const hhPanel = hh.querySelector('.sg-panel');
   const hhTitle = hh.querySelector('.sg-title');
   const hhText = hh.querySelector('.sg-text');
+  const hhQuip = hh.querySelector('.sg-quip');
   const hhStart = hh.querySelector('.sg-start');
   const hhPlayBtn = launcher.querySelector('.hh-play');
   const hhLaunchBest = launcher.querySelector('.hh-launch-best');
@@ -2149,10 +2185,12 @@
       hhTitle.textContent = 'Highway Havoc';
       hhText.textContent = 'Weave through night traffic and survive. When a rival rider pulls alongside, click (or press Space) to knock them off their bike. They hit back! Steer with the mouse or A / D / arrows. Hold Shift or right-click for nitro.';
       hhStart.textContent = 'ride';
+      hhQuip.textContent = '';
     } else {
       hhTitle.textContent = 'Wiped out';
       hhText.textContent = `You scored ${(Math.floor(hhDist / 200) + hhBonus).toLocaleString('en-IN')} with ${hhKo} knockout${hhKo === 1 ? '' : 's'}. ${isBest ? 'New best score!' : `Best: ${hhBest.toLocaleString('en-IN')}.`}`;
       hhStart.textContent = 'ride again';
+      quip(hhQuip, `motorcycle highway brawler, score ${Math.floor(hhDist / 200) + hhBonus}, ${hhKo} rival riders knocked off, ${isBest ? 'a new personal best' : `personal best is ${hhBest}`}.`);
     }
     hhPanel.hidden = false;
     hhStart.focus();
