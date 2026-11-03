@@ -1450,13 +1450,14 @@
       { name: 'experience', n: '03', r0: 660, size: 34, kind: 'moon', c1: [110,170,255], c2: [60,100,210] },
       { name: 'projects', n: '04', r0: 800, size: 42, kind: 'gas', c1: [255,160,50], c2: [150,70,10] },
       { name: 'contact', n: '05', r0: 950, size: 30, kind: 'ocean', c1: [70,230,225], c2: [30,120,170] }
-    ].map((p, i) => Object.assign(p, { r: p.r0, a: i * 1.3 + .5, hv: 0, sx: 0, sy: 0, rad: 0, d: 0 }));
+    ].map((p, i) => Object.assign(p, { r: p.r0, a: i * 1.3 + .5, hv: 0, sx: 0, sy: 0, rad: 0, d: 0,
+      size0: p.size, free: false, dead: false, respawn: 0, fade: 1, dim: 1, stretch: 1, x: 0, y: 0, vx: 0, vy: 0, mass: Math.pow(p.size / 26, 3) }));
 
     let W = 0, H = 0, dpr = 1, bg = null, wide = true, narrow = false, lastTouch = 0;
     const view = { cx: 0, cy: 0, sc: 1, ct: 1, st: 0, rs: 1 };
     const ptr = { x: 0, y: 0, on: false, ui: false };
     const ripples = [];
-    let sim = 0, g = 0, kick = 0, holeHv = 0, holding = false, holdT0 = 0, drag = null, dragMoved = false, downX = 0, downY = 0, tagLabel = '';
+    let wasHold = false, sim = 0, g = 0, kick = 0, holeHv = 0, holding = false, holdT0 = 0, drag = null, dragMoved = false, downX = 0, downY = 0, tagLabel = '';
     let tmx = 0, tmy = 0, mx = 0, my = 0, tsp = 0, sp = 0;
 
     function resize(){
@@ -1533,18 +1534,134 @@
     const orb = r => narrow ? 330 + (r - 380) * .25 : r;
     const unorb = r => narrow ? 380 + (r - 330) / .25 : r;
 
+    /* ---------- hold the black hole: real-ish orbital mechanics ----------
+       Planets switch from "on rails" to a softened-Newtonian N-body in the disk plane:
+       central gravity GM/r^2 (circular speed sqrt(GM/r)), weak mutual gravity, and gas-drag that bleeds angular momentum so orbits decay.
+       Roche/tidal limit  r_t = R (2M/m)^(1/3) ~ R * 8.3 / (density)^(1/3): inside it a body is stretched along the radial direction
+       (spaghettification) and sheds mass into a stream; below the disk's inner edge it is fully disrupted into debris that is accreted.
+       Planet-planet contact: momentum is conserved. Slow/head-on = merger (mass adds, radius ~ m^(1/3), kinetic energy -> flash + ejecta);
+       fast/grazing (v_rel > mutual escape speed, impact parameter > 0.7) = hit-and-run bounce with partial restitution + debris. */
+    /* PHYS-BEGIN */
+    const GM = 230000, EPS = 20, TS = 3.5, KD = .12, GP = 40000, DENS = { rock: 1.25, ring: .75, moon: 1, gas: .7, ocean: 1 };
+    const debris = [], booms = [];
+    let flash = 0, impactT = 0, accreted = 0;
+    const mOf = z => Math.pow(z / 26, 3), rOf = z => z * .85;
+    const tidalR = p => p.size * .85 * 8.3 / Math.cbrt(DENS[p.kind] || 1);
+
+    function toFree(p){
+      const re = orb(p.r), v = Math.sqrt(GM / re);
+      p.x = re * Math.cos(p.a); p.y = re * Math.sin(p.a);
+      p.vx = -Math.sin(p.a) * v; p.vy = Math.cos(p.a) * v; p.free = true;
+    }
+    function toRails(p){ p.free = false; p.r = unorb(Math.hypot(p.x, p.y)); p.a = Math.atan2(p.y, p.x); }
+
+    function spawnDebris(x, y, vx, vy, spread, n, col){
+      for (let i = 0; i < n && debris.length < 700; i++) {
+        const a = Math.random() * TAU, v = spread * (.25 + Math.random() * .75);
+        debris.push({ x, y, vx: vx + Math.cos(a) * v, vy: vy + Math.sin(a) * v, col, life: 7 + Math.random() * 8, sz: .8 + Math.random() * 1.6 });
+      }
+    }
+    function die(p, swallowed){
+      p.dead = true; p.free = false; p.respawn = 3.5; p.hv = 0; p.rad = 0;
+      const r = Math.hypot(p.x, p.y) || 1, tx = -p.y / r, ty = p.x / r;
+      if (!swallowed) for (let i = 0; i < 70 && debris.length < 700; i++) {   // disrupted body smears into a ring segment along its orbit
+        const o = (Math.random() - .5) * p.size * 3.2, rr = r + (Math.random() - .5) * p.size * 1.4, v = Math.sqrt(GM / rr) * (.9 + Math.random() * .15);
+        debris.push({ x: p.x / r * rr + tx * o, y: p.y / r * rr + ty * o, vx: -p.y / r * v, vy: p.x / r * v, col: p.c1, life: 8 + Math.random() * 8, sz: .9 + Math.random() * 1.8 });
+      }
+      flash = Math.min(1.2, flash + (swallowed ? .25 : .5)); booms.push({ x: p.x, y: p.y, col: p.c1, r: p.size, big: !swallowed });
+    }
+
+    function collide(){
+      for (let i = 0; i < planets.length; i++) for (let j = i + 1; j < planets.length; j++) {
+        const a = planets[i], b = planets[j];
+        if (!a.free || !b.free || a.dead || b.dead) continue;
+        const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1e-3, R = rOf(a.size) + rOf(b.size);
+        if (d >= R) continue;
+        const ma = a.mass, mb = b.mass, M = ma + mb, nx = dx / d, ny = dy / d;
+        const rvx = b.vx - a.vx, rvy = b.vy - a.vy, vn = rvx * nx + rvy * ny, rv = Math.hypot(rvx, rvy);
+        if (vn > 0) continue;                                              // already separating
+        const bpar = Math.abs(rvx * ny - rvy * nx) / (rv || 1) * d / R;      // impact parameter in contact radii (0 head-on .. 1 grazing)
+        const vesc = Math.sqrt(2 * GP * M / R);                              // mutual escape speed
+        const mu = ma * mb / M, ke = .5 * mu * rv * rv, col = ma >= mb ? a.c1 : b.c1;
+        impactT = 2.2; flash = Math.min(1.2, flash + Math.min(.5, ke * .02));
+        booms.push({ x: a.x + dx * .5, y: a.y + dy * .5, col, r: Math.max(a.size, b.size), big: true });
+        if (bpar > .7 && rv > vesc) {                                      // hit-and-run: inelastic bounce, e = .35
+          const jn = -(1 + .35) * vn / (1 / ma + 1 / mb);
+          a.vx -= jn / ma * nx; a.vy -= jn / ma * ny; b.vx += jn / mb * nx; b.vy += jn / mb * ny;
+          const push = (R - d) / 2 + 1; a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+          spawnDebris(a.x + dx * .5, a.y + dy * .5, (a.vx + b.vx) / 2, (a.vy + b.vy) / 2, rv * .6, 18, col);
+        } else {                                                           // merger: momentum conserved, volume adds
+          const big = ma >= mb ? a : b, small = big === a ? b : a;
+          big.vx = (a.vx * ma + b.vx * mb) / M; big.vy = (a.vy * ma + b.vy * mb) / M;
+          big.x = (a.x * ma + b.x * mb) / M; big.y = (a.y * ma + b.y * mb) / M;
+          big.mass = M; big.size = Math.min(big.size0 * 1.9, 26 * Math.cbrt(M));
+          spawnDebris(big.x, big.y, big.vx, big.vy, 12 + rv * .7, 16 + Math.min(40, rv * .5 | 0), small.c1);
+          small.dead = true; small.free = false; small.respawn = 3.5; small.rad = 0;
+        }
+      }
+    }
+
+    function physics(dt){
+      const h0 = dt * TS, n = Math.max(1, Math.ceil(h0 / .03)), h = h0 / n;
+      for (let st = 0; st < n; st++) {
+        for (const p of planets) {
+          if (!p.free || p.dead) continue;
+          const r2 = p.x * p.x + p.y * p.y, k = -GM / Math.pow(r2 + EPS * EPS, 1.5);
+          let ax = k * p.x - KD * g * p.vx, ay = k * p.y - KD * g * p.vy;
+          for (const q of planets) {
+            if (q === p || !q.free || q.dead) continue;
+            const dx = q.x - p.x, dy = q.y - p.y, kk = GP * q.mass / Math.pow(dx * dx + dy * dy + 400, 1.5);
+            ax += kk * dx; ay += kk * dy;
+          }
+          p.vx += ax * h; p.vy += ay * h; p.x += p.vx * h; p.y += p.vy * h;
+        }
+        collide();
+        for (let i = debris.length - 1; i >= 0; i--) {
+          const q = debris[i], r2 = q.x * q.x + q.y * q.y, k = -GM / Math.pow(r2 + 100, 1.5);
+          q.vx += (k * q.x - KD * .6 * g * q.vx) * h; q.vy += (k * q.y - KD * .6 * g * q.vy) * h; q.x += q.vx * h; q.y += q.vy * h; q.life -= h / TS;
+          if (r2 < (RS * 1.02) * (RS * 1.02)) { flash = Math.min(1.2, flash + .015); accreted++; debris.splice(i, 1); }
+          else if (q.life <= 0 || r2 > 2.5e6) debris.splice(i, 1);
+        }
+      }
+      for (const p of planets) {
+        if (!p.free || p.dead) continue;
+        const r = Math.hypot(p.x, p.y), rt = tidalR(p), k = Math.max(0, 1 - r / rt);
+        p.stretch += ((1 + 3 * k) - p.stretch) * Math.min(1, dt * 6);
+        p.dim = Math.max(.12, Math.min(1, (r - 62) / 120));                 // gravitational redshift fade
+        if (k > 0) {
+          p.size -= p.size * .22 * k * dt * TS;                              // mass loss into the tidal stream
+          p.mass = mOf(p.size);
+          const ux = p.x / r, uy = p.y / r, sgn = Math.random() < .5 ? -1 : 1;
+          if (Math.random() < k * dt * 60) spawnDebris(p.x + ux * sgn * p.size * .85 * p.stretch * .6, p.y + uy * sgn * p.size * .85 * p.stretch * .6, p.vx, p.vy, 6, 1, p.c1);
+        }
+        if (r < RS * 1.1) die(p, true);
+        else if (r < DISK_IN || p.size < p.size0 * .35) die(p, false);
+        p.r = unorb(r); p.a = Math.atan2(p.y, p.x);
+      }
+    }
+
+    /* back on rails once released; destroyed worlds re-form at their orbit */
+    function recover(dt){
+      for (const p of planets) {
+        if (p.dead) { p.respawn -= dt; if (p.respawn <= 0) { p.dead = false; p.size = p.size0; p.mass = mOf(p.size0); p.r = p.r0; p.a = Math.random() * TAU; p.fade = 0; p.dim = 1; p.stretch = 1; } continue; }
+        const k = Math.min(1, dt * 1.5);
+        p.size += (p.size0 - p.size) * k; p.stretch += (1 - p.stretch) * k; p.dim += (1 - p.dim) * k; p.fade = Math.min(1, p.fade + dt * .7);
+        p.mass = mOf(p.size);
+      }
+    }
+    /* PHYS-END */
+
     function planetUpdate(dt){
       for (const p of planets) {
-        if (p === drag) continue;
-        if (holding) p.r = Math.max(300, p.r - 45 * g * dt);
-        else p.r += (p.r0 - p.r) * Math.min(1, dt * .8);
+        if (p === drag || p.free || p.dead) continue;
+        p.r += (p.r0 - p.r) * Math.min(1, dt * .8);
         p.a += 480 * Math.pow(p.r, -1.5) * dt * (1 + kick * 4) * (1 + 1.5 * g);
       }
     }
 
     function pick(px, py){
       let best = null;
-      for (const p of planets) if (Math.hypot(px - p.sx, py - p.sy) < p.rad * 1.2 + (narrow ? 16 : 8) * dpr && (!best || p.d < best.d)) best = p;
+      for (const p of planets) if (!p.dead && Math.hypot(px - p.sx, py - p.sy) < p.rad * 1.2 + (narrow ? 16 : 8) * dpr && (!best || p.d < best.d)) best = p;
       if (best) return { p: best };
       return Math.hypot(px - view.cx, py - view.cy) < Math.max(view.rs * 1.6, 40 * dpr) ? { hole: true } : null;
     }
@@ -1676,8 +1793,35 @@
       c.beginPath(); c.moveTo(cx + rs * 2.1, cy - rs * 2.1); c.lineTo(lx, ly); c.lineTo(lx + 24 * dpr, ly); c.stroke();
       c.font = `${fs}px "Share Tech Mono", ui-monospace, monospace`; c.textAlign = 'left';
       const T = 1.20e7 * (1 + g * .6) + Math.sin(t * 2) * 8000;
-      const rows = ['GARGANTUA-7 // SINGULARITY', 'r_s  ' + (RS * (1 + g * .4)).toFixed(1) + ' AU', 'T    ' + T.toExponential(2) + ' K', 'SPIN a/M 0.998', g > .3 ? 'WARNING: TIDAL SHEAR' : 'STATUS: STABLE ORBIT'];
-      rows.forEach((r, i) => { c.fillStyle = i === 0 ? 'rgba(255,182,72,.95)' : i === 4 && g > .3 ? 'rgba(255,90,70,.95)' : 'rgba(180,235,240,.8)'; c.fillText(r, lx + 30 * dpr, ly + (i * 14 + 4) * dpr); });
+      const rows = ['GARGANTUA-7 // SINGULARITY', 'r_s  ' + (RS * (1 + g * .4)).toFixed(1) + ' AU', 'T    ' + T.toExponential(2) + ' K', 'SPIN a/M 0.998', impactT > 0 ? 'ALERT: BODY IMPACT' : planets.some(p => p.stretch > 1.25 && !p.dead) ? 'WARNING: TIDAL DISRUPTION' : g > .3 ? 'WARNING: TIDAL SHEAR' : 'STATUS: STABLE ORBIT', 'ACCRETED ' + accreted + ' fragments'];
+      rows.forEach((r, i) => { c.fillStyle = i === 0 ? 'rgba(255,182,72,.95)' : i === 4 && (g > .3 || impactT > 0) ? 'rgba(255,90,70,.95)' : 'rgba(180,235,240,.8)'; c.fillText(r, lx + 30 * dpr, ly + (i * 14 + 4) * dpr); });
+    }
+
+    function renderPlanet(p, t){
+      if (p.dead) return;
+      c.save();
+      c.globalAlpha = p.fade * p.dim;
+      if (p.stretch > 1.02) {
+        const ang = Math.atan2(p.sy - view.cy, p.sx - view.cx);
+        c.translate(p.sx, p.sy); c.rotate(ang); c.scale(p.stretch, 1 / Math.sqrt(p.stretch)); c.rotate(-ang); c.translate(-p.sx, -p.sy);
+      }
+      drawPlanet(p, t);
+      c.restore();
+    }
+
+    function paintDebris(){
+      if (!debris.length) return;
+      const { cx, cy, sc, ct, st, rs } = view;
+      c.globalCompositeOperation = 'lighter';
+      for (const q of debris) {
+        const s = F / (F - q.y * st), x = cx + q.x * s * sc, y = cy + q.y * ct * s * sc;
+        if (-q.y * st > 0 && Math.hypot(x - cx, y - cy) < rs) continue;     // hidden behind the shadow
+        const r = Math.hypot(q.x, q.y), hot = Math.max(0, Math.min(1, (260 - r) / 200)), a = Math.min(1, q.life / 3);
+        const col = q.col, R = col[0] + (255 - col[0]) * hot | 0, G = col[1] + (235 - col[1]) * hot | 0, B = col[2] + (200 - col[2]) * hot | 0;
+        c.strokeStyle = `rgba(${R},${G},${B},${a * (.55 + hot * .45)})`; c.lineWidth = q.sz * dpr * s;
+        c.beginPath(); c.moveTo(x - q.vx * .02 * sc, y - q.vy * .02 * ct * sc); c.lineTo(x, y); c.stroke();
+      }
+      c.globalCompositeOperation = 'source-over';
     }
 
     function draw(t, dt){
@@ -1685,6 +1829,13 @@
       g += ((holding ? 1 : 0) - g) * Math.min(1, dt * 3);
       kick *= Math.exp(-dt * 1.2);
       sim += dt * (1 + 2.2 * g + kick * 1.5);
+      if (holding !== wasHold) {
+        wasHold = holding;
+        for (const p of planets) { if (holding) { if (!p.dead && p !== drag) toFree(p); } else if (p.free) toRails(p); }
+      }
+      if (holding) physics(dt); else if (debris.length) physics(dt * .6);
+      if (!holding) recover(dt);
+      flash *= Math.exp(-dt * 1.4); impactT = Math.max(0, impactT - dt);
       planetUpdate(dt);
 
       const tilt = (66 + 4 * Math.sin(t * .11) + my * 4 + sp * 8) * Math.PI / 180;
@@ -1697,8 +1848,13 @@
       for (const p of planets) {
         const re = orb(p.r), y = re * Math.sin(p.a), s = F / (F - y * st);
         p.sx = cx + re * Math.cos(p.a) * s * sc; p.sy = cy + y * ct * s * sc; p.d = -y * st;
-        p.rad = p.size * (narrow ? 1.4 : 1) * s * sc * (1 + .18 * p.hv);
+        p.rad = p.dead ? 0 : p.size * (narrow ? 1.4 : 1) * s * sc * (1 + .18 * p.hv);
       }
+      for (const b of booms) {
+        const re = Math.hypot(b.x, b.y), q = F / (F - b.y * st);
+        ripples.push({ x: cx + b.x * q * sc, y: cy + b.y * ct * q * sc, r: b.r * q * sc * (b.big ? 1.6 : 1), col: b.col, age: 0 });
+      }
+      booms.length = 0;
       const hit = ptr.on && !ptr.ui && !drag ? pick(ptr.x, ptr.y) : null;
       const hoverP = drag || (hit && hit.p) || null, hoverHole = holding || (!drag && !!(hit && hit.hole));
       const label = hoverP ? hoverP.name : hoverHole ? 'hold' : '';
@@ -1725,7 +1881,7 @@
       }
       c.globalAlpha = 1;
 
-      const boost = 1 + g * 1.2 + holeHv * .3, pulse = (.9 + .1 * Math.sin(t * .8)) * boost, gl = c.createRadialGradient(cx, cy, rs * .8, cx, cy, rs * 7 * (1 + g * .5));
+      const boost = 1 + g * 1.2 + holeHv * .3 + flash, pulse = (.9 + .1 * Math.sin(t * .8)) * boost, gl = c.createRadialGradient(cx, cy, rs * .8, cx, cy, rs * 7 * (1 + g * .5));
       gl.addColorStop(0, `rgba(255,150,70,${Math.min(1, .38 * pulse)})`); gl.addColorStop(.18, `rgba(255,120,60,${Math.min(1, .1 * pulse)})`);
       gl.addColorStop(.5, 'rgba(120,60,25,.04)'); gl.addColorStop(1, 'rgba(120,60,25,0)');
       c.fillStyle = gl; c.fillRect(0, 0, W, H);
@@ -1746,7 +1902,7 @@
       c.lineCap = 'round'; c.lineWidth = 1.3 * dpr * (1 + g);
       c.globalAlpha = .4; paintStreaks(true);
       paintLens(); c.globalAlpha = 1;
-      for (const p of sorted) if (p.d > 0) drawPlanet(p, t);
+      for (const p of sorted) if (p.d > 0) renderPlanet(p, t);
 
       c.globalCompositeOperation = 'source-over';
       c.fillStyle = '#000';
@@ -1757,11 +1913,13 @@
       c.beginPath(); c.arc(cx, cy, rs * 1.015, 0, TAU); c.stroke();
       c.shadowBlur = 0;
       paintDiskSmooth(false);
+      paintDebris();
+      c.globalCompositeOperation = 'lighter';
 
       c.lineWidth = 1.3 * dpr * (1 + g);
       c.globalAlpha = .4; paintStreaks(false); c.globalAlpha = 1;
       paintDots(galaxy, false);
-      for (const p of sorted) if (p.d <= 0) drawPlanet(p, t);
+      for (const p of sorted) if (p.d <= 0) renderPlanet(p, t);
 
       paintHud(t);
       c.globalCompositeOperation = 'lighter';
@@ -1787,6 +1945,7 @@
 
       c.font = `${(narrow ? 10 : 11) * dpr}px "JetBrains Mono", ui-monospace, monospace`; c.textAlign = 'center';
       for (const p of planets) {
+        if (p.dead) continue;
         const on = p.hv > .05;
         c.fillStyle = on ? `rgba(34,224,224,${.7 + .3 * p.hv})` : 'rgba(219,228,240,.45)';
         c.fillText(on ? `${p.n} ${p.name} →` : `${p.n} ${p.name}`, p.sx, p.sy + p.rad * (p.kind === 'ring' ? 1.45 : 1.3) + 16 * dpr);
