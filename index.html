@@ -1609,6 +1609,35 @@
       if (moon && moon.z >= 0) drawMoon();
     }
 
+    /* Gargantua-style smooth disk: temperature-graded annulus with relativistic beaming (approaching side brighter) */
+    const oc = document.createElement('canvas'), ox = oc.getContext('2d');
+    function annulus(cx, cy, sy, r0, r1, half, alpha, stops){
+      const sz = Math.ceil(r1 * 2 + 4);
+      if (oc.width !== sz || oc.height !== sz) { oc.width = oc.height = sz; }
+      const m = sz / 2;
+      ox.setTransform(1, 0, 0, 1, 0, 0); ox.globalCompositeOperation = 'source-over'; ox.clearRect(0, 0, sz, sz);
+      const gr = ox.createRadialGradient(m, m, r0, m, m, r1);
+      stops.forEach(([o, col]) => gr.addColorStop(o, col));
+      ox.fillStyle = gr; ox.beginPath(); ox.arc(m, m, r1, 0, TAU); ox.arc(m, m, r0, 0, TAU, true); ox.fill('evenodd');
+      ox.globalCompositeOperation = 'destination-in';
+      const dop = ox.createLinearGradient(0, 0, sz, 0);
+      dop.addColorStop(0, 'rgba(0,0,0,.12)'); dop.addColorStop(.5, 'rgba(0,0,0,.6)'); dop.addColorStop(1, 'rgba(0,0,0,1)');
+      ox.fillStyle = dop; ox.fillRect(0, 0, sz, sz);
+      c.save();
+      c.globalAlpha = Math.min(1, alpha);
+      if (half) { c.beginPath(); c.rect(cx - r1 - 2, half < 0 ? cy - r1 - 2 : cy, r1 * 2 + 4, r1 + 2); c.clip(); }
+      c.drawImage(oc, 0, 0, sz, sz, cx - m, cy - m * sy, sz, sz * sy);
+      c.restore();
+    }
+    const DISK_STOPS = [[0, 'rgba(255,248,235,1)'], [.1, 'rgba(255,214,150,.85)'], [.35, 'rgba(255,150,70,.45)'], [.7, 'rgba(200,80,30,.18)'], [1, 'rgba(120,40,15,0)']];
+    const LENS_STOPS = [[0, 'rgba(255,244,225,1)'], [.18, 'rgba(255,200,130,.6)'], [.5, 'rgba(255,130,60,.2)'], [1, 'rgba(255,100,40,0)']];
+    function paintDiskSmooth(back){
+      const { cx, cy, sc, ct, rs } = view, d0 = DISK_IN * sc, d1 = (DISK_IN + DISK_W) * sc;
+      const k = 1 + g * .6;
+      annulus(cx, cy, ct, d0, d1, back ? -1 : 1, 1.5 * k, DISK_STOPS);
+      if (back) annulus(cx, cy, 1, rs * 1.04, rs * 1.75, 0, 1.3 * k, LENS_STOPS);
+    }
+
     function draw(t, dt){
       mx += (tmx - mx) * .04; my += (tmy - my) * .04; sp += (tsp - sp) * .06;
       g += ((holding ? 1 : 0) - g) * Math.min(1, dt * 3);
@@ -1655,8 +1684,8 @@
       c.globalAlpha = 1;
 
       const boost = 1 + g * 1.2 + holeHv * .3, pulse = (.9 + .1 * Math.sin(t * .8)) * boost, gl = c.createRadialGradient(cx, cy, rs * .8, cx, cy, rs * 7 * (1 + g * .5));
-      gl.addColorStop(0, `rgba(255,150,70,${Math.min(1, .38 * pulse)})`); gl.addColorStop(.18, `rgba(255,110,70,${Math.min(1, .16 * pulse)})`);
-      gl.addColorStop(.5, 'rgba(60,140,200,.07)'); gl.addColorStop(1, 'rgba(60,140,200,0)');
+      gl.addColorStop(0, `rgba(255,150,70,${Math.min(1, .38 * pulse)})`); gl.addColorStop(.18, `rgba(255,120,60,${Math.min(1, .1 * pulse)})`);
+      gl.addColorStop(.5, 'rgba(120,60,25,.04)'); gl.addColorStop(1, 'rgba(120,60,25,0)');
       c.fillStyle = gl; c.fillRect(0, 0, W, H);
 
       project(galaxy, sim, tilt, cx, cy, sc, u, false);
@@ -1671,22 +1700,24 @@
 
       const sorted = planets.slice().sort((a, b) => b.d - a.d);
       paintDots(galaxy, true);
+      paintDiskSmooth(true);
       c.lineCap = 'round'; c.lineWidth = 1.3 * dpr * (1 + g);
-      paintStreaks(true);
-      paintLens();
+      c.globalAlpha = .4; paintStreaks(true);
+      paintLens(); c.globalAlpha = 1;
       for (const p of sorted) if (p.d > 0) drawPlanet(p, t);
 
       c.globalCompositeOperation = 'source-over';
       c.fillStyle = '#000';
       c.beginPath(); c.arc(cx, cy, rs, 0, TAU); c.fill();
       c.globalCompositeOperation = 'lighter';
-      c.shadowBlur = (30 + g * 40 + holeHv * 12) * dpr; c.shadowColor = 'rgba(255,150,60,1)';
-      c.strokeStyle = `rgba(255,228,175,${Math.min(1, .85 * pulse)})`; c.lineWidth = (2.2 + holeHv * 1.2 + g * 2) * dpr;
-      c.beginPath(); c.arc(cx, cy, rs * 1.03, 0, TAU); c.stroke();
+      c.shadowBlur = (16 + g * 30 + holeHv * 10) * dpr; c.shadowColor = 'rgba(255,170,80,1)';
+      c.strokeStyle = `rgba(255,244,225,${Math.min(1, .9 * pulse)})`; c.lineWidth = (1.4 + holeHv * .8 + g * 1.6) * dpr;
+      c.beginPath(); c.arc(cx, cy, rs * 1.015, 0, TAU); c.stroke();
       c.shadowBlur = 0;
+      paintDiskSmooth(false);
 
       c.lineWidth = 1.3 * dpr * (1 + g);
-      paintStreaks(false);
+      c.globalAlpha = .4; paintStreaks(false); c.globalAlpha = 1;
       paintDots(galaxy, false);
       for (const p of sorted) if (p.d <= 0) drawPlanet(p, t);
 
