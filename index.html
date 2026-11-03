@@ -964,11 +964,13 @@
   .sg-pw.ready{ border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 16px rgba(43,227,160,.35); }
   .sg-pw.low{ border-color:rgba(255,122,26,.6); }
   .sg-pw .cd{ position:absolute; inset:0; background:rgba(0,0,0,.6); transform-origin:bottom; transform:scaleY(0); pointer-events:none; }
+  #cosmos{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; display:block; }
 </style>
 </head>
 <body>
 
 <a class="skip-link" href="#main-content">Skip to main content</a>
+<canvas id="cosmos" aria-hidden="true"></canvas>
 <canvas id="trail-canvas"></canvas>
 
 <div class="command-overlay" id="command-overlay" aria-hidden="true">
@@ -3139,6 +3141,297 @@
 })();
 </script>
 
+<script>
+/* ---------- full-page multiverse backdrop: stars, nebulae, rifts, a looming titan, meteor strikes ---------- */
+(function(){
+  const cv = document.getElementById('cosmos');
+  if (!cv) return;
+  const c = cv.getContext('2d', { alpha: false });
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const small = window.innerWidth < 700;
+  const TAU = Math.PI * 2;
+  let seed = 4242;
+  const rnd = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const rr = (a, b) => a + (Math.random()) * (b - a);
+
+  let W = 0, H = 0, dpr = 1, wide = true;
+  let nebula = null, planetImg = null, titanImg = null, horizonY = 0, planetR = 0;
+  let mx = 0, my = 0, tmx = 0, tmy = 0, scrollY = 0;
+  const layers = [], rifts = [], strands = [], meteors = [], sparks = [], flares = [], waves = [];
+  let nextStrike = 1.5, nextSmall = .4, stormT = 18, stormLeft = 0, T = 0;
+
+  /* ----- one-off pre-rendered pieces ----- */
+  function buildNebula(){
+    nebula = document.createElement('canvas'); nebula.width = W; nebula.height = H;
+    const g = nebula.getContext('2d'), m = Math.max(W, H);
+    g.fillStyle = '#02040a'; g.fillRect(0, 0, W, H);
+    [[.18, .22, .55, '10,70,90', .55], [.82, .3, .5, '255,120,30', .3], [.5, .62, .6, '8,40,80', .5], [.9, .85, .45, '245,184,46', .22], [.08, .8, .4, '30,150,130', .28], [.55, .05, .4, '200,60,40', .18]]
+      .forEach(([x, y, r, rgb, a]) => {
+        const gr = g.createRadialGradient(x * W, y * H, 0, x * W, y * H, r * m);
+        gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(.55, `rgba(${rgb},${a * .35})`); gr.addColorStop(1, `rgba(${rgb},0)`);
+        g.fillStyle = gr; g.fillRect(0, 0, W, H);
+      });
+    // soft wispy dust
+    for (let i = 0; i < 70; i++) {
+      const x = rnd() * W, y = rnd() * H, r = (40 + rnd() * 160) * dpr, hue = rnd() < .5 ? '40,180,160' : '255,150,60';
+      const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${hue},${.035 + rnd() * .05})`); gr.addColorStop(1, `rgba(${hue},0)`);
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(190,215,255,${.04 + rnd() * .2})`; g.fillRect(rnd() * W, rnd() * H, dpr, dpr); }
+  }
+
+  function buildPlanet(){
+    planetR = W * 1.7;
+    const hh = H * .13;
+    horizonY = H - hh;
+    planetImg = document.createElement('canvas'); planetImg.width = W; planetImg.height = Math.ceil(hh + 60 * dpr);
+    const g = planetImg.getContext('2d'), cy = planetR + 30 * dpr, cx = W / 2;
+    const body = g.createRadialGradient(cx, cy - planetR * .4, planetR * .2, cx, cy, planetR);
+    body.addColorStop(0, '#0d1814'); body.addColorStop(.97, '#070d0b'); body.addColorStop(1, '#040605');
+    g.fillStyle = body; g.beginPath(); g.arc(cx, cy, planetR, 0, TAU); g.fill();
+    // lava cracks + craters
+    g.save(); g.beginPath(); g.arc(cx, cy, planetR - 2, 0, TAU); g.clip();
+    for (let i = 0; i < 26; i++) {
+      let x = rnd() * W, y = 30 * dpr + rnd() * hh;
+      g.strokeStyle = `rgba(255,${90 + (rnd() * 80 | 0)},20,${.18 + rnd() * .35})`; g.lineWidth = (.8 + rnd() * 1.6) * dpr; g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k < 6; k++) { x += (rnd() - .5) * 90 * dpr; y += rnd() * 22 * dpr; g.lineTo(x, y); }
+      g.stroke();
+    }
+    for (let i = 0; i < 18; i++) { const x = rnd() * W, y = 36 * dpr + rnd() * hh, rx = (14 + rnd() * 46) * dpr; g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(x, y, rx, rx * .22, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(120,200,170,.12)'; g.lineWidth = dpr; g.stroke(); }
+    g.restore();
+    // atmosphere rim
+    const rim = g.createLinearGradient(0, 0, W, 0);
+    rim.addColorStop(0, 'rgba(255,140,50,.7)'); rim.addColorStop(.5, 'rgba(70,230,190,.75)'); rim.addColorStop(1, 'rgba(255,170,60,.7)');
+    g.strokeStyle = rim; g.lineWidth = 2.4 * dpr; g.shadowBlur = 26 * dpr; g.shadowColor = 'rgba(80,240,200,.8)';
+    g.beginPath(); g.arc(cx, cy, planetR, Math.PI * 1.2, Math.PI * 1.8); g.stroke();
+  }
+
+  /* a looming titan: heavy jaw, spiked pauldrons, a raised gauntlet; drawn once, stones pulse live */
+  const TITAN = {
+    w: 400, h: 540,
+    body: 'M200 26 C246 26 272 54 272 98 C272 126 268 148 264 168 C260 192 248 208 232 216 L216 224 L200 228 L184 224 L168 216 C152 208 140 192 136 168 C132 148 128 126 128 98 C128 54 154 26 200 26 Z ' +
+          'M172 210 L160 254 L240 254 L228 210 Z ' +
+          'M168 248 L112 264 L58 250 L34 210 L64 228 L44 184 L90 220 L100 196 L132 238 L170 242 Z ' +
+          'M232 248 L288 264 L342 250 L366 210 L336 228 L356 184 L310 220 L300 196 L268 238 L230 242 Z ' +
+          'M112 264 L84 540 L316 540 L288 264 L232 248 L200 304 L168 248 Z',
+    arm: 'M326 262 L352 320 L338 396 L296 392 L304 330 L288 270 Z',
+    fist: 'M290 388 C282 396 280 420 288 436 C296 452 328 456 344 444 C356 432 354 402 344 390 C332 380 304 378 290 388 Z'
+  };
+  function buildTitan(){
+    const sc = Math.min(H * .95 / TITAN.h, W * (wide ? .55 : 1.2) / TITAN.w), tw = Math.ceil(TITAN.w * sc), th = Math.ceil(TITAN.h * sc);
+    titanImg = document.createElement('canvas'); titanImg.width = tw; titanImg.height = th; titanImg.dataset.sc = sc;
+    const g = titanImg.getContext('2d'); g.scale(sc, sc);
+    const body = new Path2D(TITAN.body), arm = new Path2D(TITAN.arm), fist = new Path2D(TITAN.fist);
+    // dark volume with a cold top-light
+    const fill = g.createLinearGradient(0, 0, 0, TITAN.h);
+    fill.addColorStop(0, '#0e1218'); fill.addColorStop(.45, '#07090c'); fill.addColorStop(1, '#020303');
+    g.fillStyle = fill; g.fill(body); g.fill(arm);
+    // rim lights: teal from the left, amber from the right
+    g.save(); g.clip(body);
+    const lr = g.createLinearGradient(0, 0, TITAN.w, 0);
+    lr.addColorStop(0, 'rgba(70,230,200,.55)'); lr.addColorStop(.3, 'rgba(70,230,200,0)'); lr.addColorStop(.7, 'rgba(255,150,50,0)'); lr.addColorStop(1, 'rgba(255,150,50,.6)');
+    g.fillStyle = lr; g.fillRect(0, 0, TITAN.w, TITAN.h);
+    g.restore();
+    g.lineJoin = 'round'; g.lineWidth = 2.2;
+    const edge = g.createLinearGradient(0, 0, TITAN.w, 0); edge.addColorStop(0, 'rgba(90,240,210,.9)'); edge.addColorStop(.5, 'rgba(255,200,120,.25)'); edge.addColorStop(1, 'rgba(255,160,60,.9)');
+    g.strokeStyle = edge; g.shadowBlur = 14; g.shadowColor = 'rgba(120,255,220,.5)'; g.stroke(body); g.stroke(arm); g.shadowBlur = 0;
+    // face: brow ridge, cheek hollows, cleft chin, nose shadow
+    g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineWidth = 3.2;
+    g.lineWidth = 5; g.beginPath(); g.moveTo(146, 100); g.quadraticCurveTo(176, 84, 196, 104); g.moveTo(254, 100); g.quadraticCurveTo(224, 84, 204, 104); g.stroke(); g.lineWidth = 3.2;
+    g.fillStyle = 'rgba(0,0,0,.8)'; g.beginPath(); g.ellipse(174, 114, 19, 8, .15, 0, TAU); g.ellipse(226, 114, 19, 8, -.15, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.09)'; g.lineWidth = 2; g.beginPath(); g.moveTo(150, 150); g.quadraticCurveTo(168, 170, 184, 176); g.moveTo(250, 150); g.quadraticCurveTo(232, 170, 216, 176); g.moveTo(190, 124); g.lineTo(186, 160); g.moveTo(210, 124); g.lineTo(214, 160); g.stroke(); g.strokeStyle = 'rgba(0,0,0,.65)';
+    g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(200, 118); g.lineTo(194, 156); g.lineTo(206, 158); g.moveTo(178, 186); g.quadraticCurveTo(200, 196, 222, 186); g.moveTo(200, 206); g.lineTo(200, 218); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(166, 66); g.quadraticCurveTo(200, 56, 234, 66); g.moveTo(160, 78); g.quadraticCurveTo(200, 66, 240, 78); g.stroke();
+    // armour: gold trim on the pauldrons + breastplate seams
+    g.strokeStyle = 'rgba(245,184,46,.55)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(40, 214); g.lineTo(112, 264); g.moveTo(360, 214); g.lineTo(288, 264); g.moveTo(170, 252); g.lineTo(200, 306); g.lineTo(230, 252); g.moveTo(96, 330); g.lineTo(190, 360); g.moveTo(304, 330); g.lineTo(210, 360); g.stroke();
+    // gauntlet fist, gold
+    const fg = g.createLinearGradient(288, 386, 348, 450); fg.addColorStop(0, '#d9a62e'); fg.addColorStop(1, '#6a4a10');
+    g.fillStyle = fg; g.fill(fist); g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 2; g.stroke(fist);
+    g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(300, 418); g.lineTo(336, 420); g.moveTo(298, 432); g.lineTo(338, 434); g.stroke();
+  }
+  const STONES = [['47,143,240', 300, 392], ['255,150,26', 312, 389], ['43,227,106', 324, 389], ['255,60,60', 336, 392], ['255,210,58', 318, 400], ['150,100,255', 306, 401]];
+
+  /* ----- scene objects ----- */
+  function seedScene(){
+    layers.length = 0; rifts.length = 0; strands.length = 0;
+    const counts = small ? [140, 70, 30] : [380, 190, 80];
+    counts.forEach((n, li) => layers.push({ depth: [.18, .5, 1][li], stars: Array.from({ length: n }, () => ({ x: rnd(), y: rnd(), s: (.5 + rnd() * (li + 1) * .7), ph: rnd() * TAU, c: [[255, 255, 255], [160, 255, 225], [255, 215, 140], [180, 215, 255]][(rnd() * 4) | 0] })) }));
+    [[.14, .26, 78, '255,140,40', .5], [.9, .2, 54, '60,230,200', .4], [.08, .74, 64, '245,184,46', .45], [.86, .62, 96, '60,160,255', .5]]
+      .forEach(([x, y, r, col, par], i) => rifts.push({ x, y, r, col, par, ph: rnd() * TAU, arms: 5 + i, bolts: Array.from({ length: 7 }, () => ({ a: rnd() * TAU, len: .6 + rnd() * .9, ph: rnd() * TAU })) }));
+    for (let i = 0; i < 5; i++) strands.push({ y0: .15 + rnd() * .75, y1: .1 + rnd() * .8, a: rnd() * TAU, col: ['255,130,40', '70,230,190', '245,184,46'][i % 3], phase: rnd() * 8 });
+  }
+
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, small ? 1.25 : 1.5);
+    W = cv.width = Math.round(window.innerWidth * dpr); H = cv.height = Math.round(window.innerHeight * dpr);
+    wide = window.innerWidth > 900; seed = 4242;
+    buildNebula(); buildPlanet(); buildTitan(); seedScene();
+    if (reduce) draw(6, 0);
+  }
+
+  /* ----- meteors, strikes ----- */
+  function spawnMeteor(strike){
+    const fromX = rr(.15, 1.15) * W, fromY = -40 * dpr;
+    let tx, ty;
+    if (strike) { tx = rr(.08, .92) * W; ty = horizonY + 8 * dpr + rr(0, H * .04); }
+    else { tx = fromX - rr(.5, 1.1) * W; ty = rr(.5, 1.1) * H; }
+    const dx = tx - fromX, dy = ty - fromY, d = Math.hypot(dx, dy), sp = (strike ? rr(750, 1050) : rr(900, 1500)) * dpr;
+    meteors.push({ x: fromX, y: fromY, vx: dx / d * sp, vy: dy / d * sp, tx, ty, strike, r: (strike ? rr(3.5, 7) : rr(1.2, 2.4)) * dpr, len: strike ? 240 * dpr : 140 * dpr, life: 0 });
+  }
+  function impact(m){
+    const x = m.tx, y = m.ty, big = m.r > 5 * dpr;
+    flares.push({ x, y, life: 1, r: (big ? 130 : 80) * dpr });
+    waves.push({ x, y, life: 1, rx: 0, max: (big ? 340 : 220) * dpr });
+    for (let i = 0; i < (big ? 46 : 28); i++) { const a = -Math.PI * (.1 + rnd() * .8), s = rr(120, big ? 520 : 380) * dpr; sparks.push({ x, y, vx: Math.cos(a) * s * (Math.random() < .5 ? -1 : 1), vy: Math.sin(a) * s, life: rr(.7, 1.5) }); }
+  }
+
+  /* ----- frame ----- */
+  function draw(t, dt){
+    T = t; mx += (tmx - mx) * .05; my += (tmy - my) * .05;
+    const sy = scrollY * dpr;
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    // nebula (slow drift)
+    const nx = -((t * 4) % 40) * dpr * .5 + mx * -10 * dpr;
+    c.drawImage(nebula, nx - 20 * dpr, -my * 8 * dpr - 14 * dpr, W + 40 * dpr, H + 28 * dpr);
+
+    // stars (3 parallax layers)
+    layers.forEach(L => {
+      const ox = mx * 22 * L.depth * dpr, oy = -sy * .08 * L.depth + my * 12 * L.depth * dpr;
+      L.stars.forEach(s => {
+        const x = ((s.x * W + ox) % W + W) % W, y = (((s.y * H + oy) % H) + H) % H;
+        c.fillStyle = `rgba(${s.c[0]},${s.c[1]},${s.c[2]},${(.35 + .65 * (.5 + .5 * Math.sin(t * (1 + L.depth * 2) + s.ph))) * (.45 + L.depth * .55)})`;
+        c.fillRect(x, y, s.s * dpr, s.s * dpr);
+      });
+    });
+
+    // TVA-style timeline strands
+    c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+    strands.forEach((s, i) => {
+      const y0 = s.y0 * H + Math.sin(t * .2 + s.a) * 40 * dpr, y1 = s.y1 * H + Math.cos(t * .17 + s.a) * 50 * dpr - sy * .05;
+      c.strokeStyle = `rgba(${s.col},.16)`; c.lineWidth = 2.2 * dpr; c.setLineDash([10 * dpr, 16 * dpr]); c.lineDashOffset = -(t * 30 + s.phase * 10) * dpr;
+      c.beginPath(); c.moveTo(-20, y0); c.bezierCurveTo(W * .3, y0 + (i % 2 ? -1 : 1) * 160 * dpr, W * .68, y1 - (i % 2 ? -1 : 1) * 140 * dpr, W + 20, y1); c.stroke();
+    });
+    c.setLineDash([]);
+
+    // multiverse rifts
+    rifts.forEach(R => {
+      const x = R.x * W + mx * 26 * R.par * dpr, y = R.y * H - sy * R.par * .12 + my * 16 * R.par * dpr, r = R.r * dpr * (1 + Math.sin(t * .9 + R.ph) * .05);
+      const gl = c.createRadialGradient(x, y, r * .2, x, y, r * 2.6);
+      gl.addColorStop(0, `rgba(${R.col},.34)`); gl.addColorStop(.4, `rgba(${R.col},.1)`); gl.addColorStop(1, `rgba(${R.col},0)`);
+      c.fillStyle = gl; c.beginPath(); c.arc(x, y, r * 2.6, 0, TAU); c.fill();
+      // other-universe core
+      const core = c.createRadialGradient(x, y, 0, x, y, r);
+      core.addColorStop(0, 'rgba(2,6,10,.95)'); core.addColorStop(.75, `rgba(${R.col},.18)`); core.addColorStop(1, 'rgba(0,0,0,0)');
+      c.globalCompositeOperation = 'source-over'; c.fillStyle = core; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 3; k++) {
+        c.save(); c.translate(x, y); c.rotate(t * (.5 + k * .35) * (k % 2 ? -1 : 1) + R.ph); c.scale(1, .82 + k * .06);
+        c.strokeStyle = `rgba(${R.col},${.8 - k * .2})`; c.lineWidth = (3 - k * .7) * dpr; c.setLineDash([(26 - k * 6) * dpr, (14 + k * 6) * dpr]);
+        c.beginPath(); c.arc(0, 0, r * (1 + k * .13), 0, TAU); c.stroke(); c.restore();
+      }
+      c.setLineDash([]);
+      R.bolts.forEach(b => {                       // crackling energy off the rift
+        const vis = .5 + .5 * Math.sin(t * 5 + b.ph); if (vis < .55) return;
+        let px = x + Math.cos(b.a) * r, py = y + Math.sin(b.a) * r;
+        c.strokeStyle = `rgba(255,255,255,${vis * .6})`; c.lineWidth = 1.4 * dpr; c.beginPath(); c.moveTo(px, py);
+        for (let n = 1; n <= 6; n++) { const q = n / 6; c.lineTo(x + Math.cos(b.a + (Math.random() - .5) * .25) * (r + q * r * b.len), y + Math.sin(b.a + (Math.random() - .5) * .25) * (r + q * r * b.len)); }
+        c.stroke();
+      });
+    });
+    c.globalCompositeOperation = 'source-over';
+
+    // the titan, far away and low in the haze
+    {
+      const sc = +titanImg.dataset.sc, tw = titanImg.width, th = titanImg.height;
+      const tx = (wide ? W * .56 : W * .5) - tw / 2 + mx * 14 * dpr, ty = H - th * .92 - sy * .06 + my * 8 * dpr + Math.sin(t * .35) * 3 * dpr;
+      c.globalAlpha = wide ? .88 : .55;
+      c.drawImage(titanImg, tx, ty);
+      c.globalAlpha = 1;
+      c.globalCompositeOperation = 'lighter';
+      const pulse = .6 + .4 * Math.sin(t * 2.4);
+      STONES.forEach(([col, sx, sy2], i) => {
+        const px = tx + sx * sc, py = ty + sy2 * sc, pr = (5 + pulse * 3 + Math.sin(t * 3 + i) * 1.2) * sc * .75;
+        const sg = c.createRadialGradient(px, py, 0, px, py, pr * 3);
+        sg.addColorStop(0, `rgba(${col},${.85 * (wide ? 1 : .8)})`); sg.addColorStop(.3, `rgba(${col},.3)`); sg.addColorStop(1, `rgba(${col},0)`);
+        c.fillStyle = sg; c.beginPath(); c.arc(px, py, pr * 3, 0, TAU); c.fill();
+      });
+      const eg = .45 + .35 * Math.sin(t * .8);
+      [[174, 114], [226, 114]].forEach(([ex, ey]) => { const px = tx + ex * sc, py = ty + ey * sc; const g2 = c.createRadialGradient(px, py, 0, px, py, 9 * sc); g2.addColorStop(0, `rgba(255,170,60,${eg})`); g2.addColorStop(1, 'rgba(255,170,60,0)'); c.fillStyle = g2; c.beginPath(); c.arc(px, py, 9 * sc, 0, TAU); c.fill(); });
+      c.globalCompositeOperation = 'source-over';
+    }
+
+    // meteors in the sky
+    c.globalCompositeOperation = 'lighter';
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i];
+      m.x += m.vx * dt; m.y += m.vy * dt; m.life += dt;
+      const sp = Math.hypot(m.vx, m.vy), ux = m.vx / sp, uy = m.vy / sp;
+      const tg = c.createLinearGradient(m.x, m.y, m.x - ux * m.len, m.y - uy * m.len);
+      tg.addColorStop(0, m.strike ? 'rgba(255,200,120,.95)' : 'rgba(210,240,255,.9)'); tg.addColorStop(.35, m.strike ? 'rgba(255,110,30,.5)' : 'rgba(120,200,255,.35)'); tg.addColorStop(1, 'rgba(255,90,20,0)');
+      c.strokeStyle = tg; c.lineWidth = m.r * 1.5; c.beginPath(); c.moveTo(m.x, m.y); c.lineTo(m.x - ux * m.len, m.y - uy * m.len); c.stroke();
+      const hg = c.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r * 5); hg.addColorStop(0, 'rgba(255,255,240,1)'); hg.addColorStop(.3, m.strike ? 'rgba(255,170,70,.7)' : 'rgba(170,220,255,.6)'); hg.addColorStop(1, 'rgba(255,120,30,0)');
+      c.fillStyle = hg; c.beginPath(); c.arc(m.x, m.y, m.r * 5, 0, TAU); c.fill();
+      const arrived = m.strike ? (m.y >= m.ty) : (m.y > H + 80 * dpr || m.x < -120 * dpr);
+      if (arrived) { if (m.strike) impact(m); meteors.splice(i, 1); }
+    }
+    c.globalCompositeOperation = 'source-over';
+
+    // planet horizon
+    c.drawImage(planetImg, 0, horizonY - 30 * dpr);
+
+    // impact effects on top of the horizon
+    c.globalCompositeOperation = 'lighter';
+    for (let i = flares.length - 1; i >= 0; i--) {
+      const f = flares[i]; f.life -= dt * 1.5;
+      if (f.life <= 0) { flares.splice(i, 1); continue; }
+      const g3 = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r * (1.4 - f.life * .4));
+      g3.addColorStop(0, `rgba(255,235,190,${f.life * .7})`); g3.addColorStop(.25, `rgba(255,140,40,${f.life * .45})`); g3.addColorStop(1, 'rgba(255,90,20,0)');
+      c.fillStyle = g3; c.beginPath(); c.arc(f.x, f.y, f.r * 1.4, 0, TAU); c.fill();
+    }
+    for (let i = waves.length - 1; i >= 0; i--) {
+      const w = waves[i]; w.life -= dt * 1.1; w.rx += (w.max / 1.1) * dt;
+      if (w.life <= 0) { waves.splice(i, 1); continue; }
+      c.strokeStyle = `rgba(255,200,120,${w.life * .8})`; c.lineWidth = (1 + w.life * 4) * dpr; c.beginPath(); c.ellipse(w.x, w.y, w.rx, w.rx * .16, 0, 0, TAU); c.stroke();
+    }
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i]; s.life -= dt; s.vy += 520 * dpr * dt; s.x += s.vx * dt; s.y += s.vy * dt;
+      if (s.life <= 0 || s.y > H + 20) { sparks.splice(i, 1); continue; }
+      c.fillStyle = `rgba(255,${150 + (s.life * 60 | 0)},50,${Math.min(1, s.life)})`; c.fillRect(s.x, s.y, 2.2 * dpr, 2.2 * dpr);
+    }
+    c.globalCompositeOperation = 'source-over';
+
+    // readability veil + vignette
+    if (wide) {
+      const vg = c.createLinearGradient(0, 0, W * .62, 0); vg.addColorStop(0, 'rgba(3,6,6,.6)'); vg.addColorStop(1, 'rgba(3,6,6,0)');
+      c.fillStyle = vg; c.fillRect(0, 0, W, H);
+    }
+    c.fillStyle = small ? 'rgba(3,6,6,.38)' : 'rgba(3,6,6,.2)'; c.fillRect(0, 0, W, H);
+    const v = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .45, W / 2, H / 2, Math.max(W, H) * .8); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.5)');
+    c.fillStyle = v; c.fillRect(0, 0, W, H);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  if (reduce) return;
+  window.addEventListener('mousemove', (e) => { tmx = e.clientX / window.innerWidth * 2 - 1; tmy = e.clientY / window.innerHeight * 2 - 1; }, { passive: true });
+  window.addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
+  window.addEventListener('deviceorientation', (e) => { if (e.gamma == null) return; tmx = Math.max(-1, Math.min(1, e.gamma / 25)); tmy = Math.max(-1, Math.min(1, (e.beta - 45) / 25)); });
+
+  let last = performance.now(), tt = 0;
+  (function frame(now){
+    requestAnimationFrame(frame);
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (document.hidden || document.querySelector('.sg-overlay.is-open')) return;
+    tt += dt;
+    nextSmall -= dt; nextStrike -= dt; stormT -= dt;
+    if (nextSmall <= 0) { spawnMeteor(false); nextSmall = rr(.5, 1.6); }
+    if (nextStrike <= 0) { spawnMeteor(true); nextStrike = rr(2.4, 5.5); }
+    if (stormT <= 0) { stormLeft = 7; stormT = rr(26, 40); }
+    if (stormLeft > 0) { stormLeft--; setTimeout(() => spawnMeteor(Math.random() < .7), Math.random() * 3000); }
+    draw(tt, dt);
+  })(last);
+})();
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -3146,6 +3439,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 
 /* ---------- Loki in space: an original toon-shaded trickster god conducting the multiverse's language branches ---------- */
 function main(){
@@ -3165,9 +3462,13 @@ function main(){
   document.documentElement.classList.add('has-3d');
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 2));
   renderer.setClearColor(0x050a08, 1);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x050a08, .018);
+  { const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), .04).texture; scene.environmentIntensity = .55; }
   const camera = new THREE.PerspectiveCamera(38, 1, .1, 200);
   const camTarget = new THREE.Vector3(0, 1.35, 0);
   camera.position.set(0, 1.5, 10.6);
@@ -3177,31 +3478,40 @@ function main(){
   const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .5, .45, .92);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
+  const vig = new ShaderPass(VignetteShader); vig.uniforms.offset.value = 1.0; vig.uniforms.darkness.value = 1.15; composer.addPass(vig);
+  composer.addPass(new FilmPass(.22, false));
 
   /* ---------- lights ---------- */
-  scene.add(new THREE.HemisphereLight(0xbfffe6, 0x07110d, .6));
-  const key = new THREE.DirectionalLight(0xffffff, 1.7); key.position.set(3, 5, 7); scene.add(key);
-  const rim = new THREE.DirectionalLight(0x2be3a0, 1.5); rim.position.set(-5, 2, -4); scene.add(rim);
+  scene.add(new THREE.HemisphereLight(0xcfeee3, 0x07110d, .35));
+  const key = new THREE.DirectionalLight(0xfff1dc, 2.6); key.position.set(3.5, 5.5, 7); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.camera.left = -4; key.shadow.camera.right = 4; key.shadow.camera.top = 5; key.shadow.camera.bottom = -3; key.shadow.camera.near = 1; key.shadow.camera.far = 20; key.shadow.bias = -.0004; key.shadow.normalBias = .02; scene.add(key);
+  const rim = new THREE.DirectionalLight(0x3ff0b0, 2.2); rim.position.set(-5, 2, -4); scene.add(rim);
   const flash = new THREE.PointLight(0xbfe9ff, 0, 14, 2); scene.add(flash);
 
-  /* ---------- toon material + ink outline ---------- */
-  const grad = new THREE.DataTexture(new Uint8Array([105, 175, 255]), 3, 1, THREE.RedFormat);
-  grad.minFilter = grad.magFilter = THREE.NearestFilter; grad.needsUpdate = true;
-  const toon = (color, extra) => new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: grad }, extra));
-  const outlines = new Map();
-  function outlineMat(t){
-    if (!outlines.has(t)) {
-      const m = new THREE.MeshBasicMaterial({ color: 0x030504, side: THREE.BackSide });
-      m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `vec3 transformed = position + normal * ${t.toFixed(4)};`); };
-      outlines.set(t, m);
-    }
-    return outlines.get(t);
+  /* ---------- physically based materials (procedural bump maps, no outlines) ---------- */
+  function noiseTex(size, grain, rx, ry){
+    const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'), im = g.createImageData(size, size);
+    for (let i = 0; i < size * size; i++) { const v = 128 + (Math.random() - .5) * grain; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+    g.putImageData(im, 0, 0);
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); return t;
   }
-  function part(geo, color, ink = .022, extra){
-    const m = new THREE.Mesh(geo, color && color.isMaterial ? color : toon(color, extra));
-    if (ink) { const o = new THREE.Mesh(geo, outlineMat(ink)); m.add(o); }
-    return m;
+  const leatherBump = noiseTex(256, 120, 3, 3), clothBump = noiseTex(256, 70, 6, 8), skinBump = noiseTex(256, 40, 4, 4);
+  const M = {
+    gold: new THREE.MeshPhysicalMaterial({ color: 0xd9a62e, metalness: 1, roughness: .24, clearcoat: .6, clearcoatRoughness: .2 }),
+    leather: new THREE.MeshPhysicalMaterial({ color: 0x0f3a2e, roughness: .5, metalness: .1, clearcoat: .35, clearcoatRoughness: .45, bumpMap: leatherBump, bumpScale: .9 }),
+    dark: new THREE.MeshPhysicalMaterial({ color: 0x0a0e0d, roughness: .42, metalness: .15, clearcoat: .4, bumpMap: leatherBump, bumpScale: .6 }),
+    skin: new THREE.MeshPhysicalMaterial({ color: 0xe6c5b0, roughness: .55, metalness: 0, sheen: .6, sheenColor: new THREE.Color(0xffb8a0), sheenRoughness: .5, bumpMap: skinBump, bumpScale: .12 }),
+    hair: new THREE.MeshPhysicalMaterial({ color: 0x0b0a0a, roughness: .38, metalness: .1, sheen: 1, sheenColor: new THREE.Color(0x335048), sheenRoughness: .35 }),
+    eye: new THREE.MeshPhysicalMaterial({ color: 0xf3f1ea, roughness: .1, clearcoat: 1, clearcoatRoughness: .05 }),
+    rock: new THREE.MeshStandardMaterial({ color: 0x59645f, roughness: .9, metalness: .1, flatShading: true }),
+    planet: new THREE.MeshStandardMaterial({ color: 0xc4631b, roughness: .8, metalness: .05, bumpMap: noiseTex(256, 150, 2, 1), bumpScale: 2 }),
+    steel: null
+  };
+  const byColor = { 0xf5b82e: M.gold, 0x17463a: M.leather, 0x0f2a22: M.leather, 0xe8eee8: M.skin, 0x070b09: M.hair, 0x0c1512: M.dark, 0x050807: M.dark, 0x0a0f0d: M.dark, 0xffffff: M.eye, 0x5a6b63: M.rock, 0xff7a1a: M.planet, 0xd4e3dc: M.gold };
+  function part(geo, color, ink, extra){
+    const mat = color && color.isMaterial ? color : (byColor[color] || new THREE.MeshStandardMaterial(Object.assign({ color, roughness: .6 }, extra)));
+    const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m;
   }
+  const toon = (color, extra) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: .6 }, extra));
   const GOLD = 0xf5b82e, GREEN = 0x17463a, SKIN = 0xe8eee8, INK = 0x070b09;
 
   /* ---------- space backdrop ---------- */
@@ -3235,7 +3545,7 @@ function main(){
 
   const planet = new THREE.Group();
   planet.position.set(-10, 4.5, -20);
-  planet.add(part(new THREE.SphereGeometry(2.4, 32, 24), 0xff7a1a, .04));
+  planet.add(part(new THREE.SphereGeometry(2.4, 48, 32), 0xff7a1a));
   const ring = new THREE.Mesh(new THREE.RingGeometry(3.3, 4.6, 64), new THREE.MeshBasicMaterial({ color: 0xf5b82e, side: THREE.DoubleSide, transparent: true, opacity: .5 }));
   ring.rotation.x = Math.PI * .42; ring.rotation.y = .3; planet.add(ring);
   scene.add(planet);
@@ -3243,7 +3553,7 @@ function main(){
   const rocks = [];
   for (let i = 0; i < 6; i++) {
     const g = new THREE.IcosahedronGeometry(.18 + Math.random() * .32, 0);
-    const m = part(g, 0x5a6b63, .03, { flatShading: true });
+    const m = part(g, 0x5a6b63);
     const r = { m, a: Math.random() * 6.28, rad: 5 + Math.random() * 2.6, y: -.5 + Math.random() * 4, s: .06 + Math.random() * .12, sp: new THREE.Vector3(Math.random(), Math.random(), Math.random()).multiplyScalar(.6) };
     scene.add(m); rocks.push(r);
   }
@@ -3268,25 +3578,29 @@ function main(){
   /* cape: a cloth plane that ripples */
   const capeGeo = new THREE.PlaneGeometry(1.9, 2.7, 18, 26);
   const capeBase = capeGeo.attributes.position.array.slice();
-  const cape = new THREE.Mesh(capeGeo, toon(0x0f8a5a, { side: THREE.DoubleSide }));
+  const cape = new THREE.Mesh(capeGeo, new THREE.MeshPhysicalMaterial({ color: 0x0a6a45, roughness: .82, metalness: 0, sheen: 1, sheenColor: new THREE.Color(0x4ff0b0), sheenRoughness: .45, bumpMap: clothBump, bumpScale: .5, side: THREE.DoubleSide })); cape.castShadow = true; cape.receiveShadow = true;
   cape.position.set(0, .12, -.36); rig.add(cape);
-  const capeTrim = new THREE.Mesh(new THREE.PlaneGeometry(1.9, .09, 18, 1), toon(GOLD, { side: THREE.DoubleSide }));
+  const capeTrim = new THREE.Mesh(new THREE.PlaneGeometry(1.9, .09, 18, 1), new THREE.MeshStandardMaterial({ color: 0xd9a62e, metalness: 1, roughness: .3, side: THREE.DoubleSide }));
   cape.add(capeTrim);
 
   /* head */
   const head = new THREE.Group(); head.position.y = 1.98; rig.add(head);
   const skull = part(new THREE.SphereGeometry(.3, 28, 22), SKIN, .02); skull.scale.set(.88, 1.12, .96); head.add(skull);
+  const jaw = part(new THREE.SphereGeometry(.24, 24, 18), SKIN); jaw.scale.set(.82, .7, .86); jaw.position.set(0, -.15, .03); head.add(jaw);
+  [-1, 1].forEach(sd => { const ck = part(new THREE.SphereGeometry(.07, 14, 10), SKIN); ck.scale.set(1.2, .8, .8); ck.position.set(sd * .15, -.02, .21); head.add(ck); const so = part(new THREE.SphereGeometry(.07, 14, 10), new THREE.MeshStandardMaterial({ color: 0xb48c7c, roughness: .8 })); so.scale.set(1.5, .8, .5); so.position.set(sd * .105, .05, .245); head.add(so); });
+  const browR = part(new THREE.BoxGeometry(.4, .045, .08), SKIN); browR.position.set(0, .115, .25); head.add(browR);
+  const bridge = part(new THREE.CylinderGeometry(.018, .03, .16, 10), SKIN); bridge.position.set(0, .01, .285); bridge.rotation.x = -.2; head.add(bridge);
   const hair = part(new THREE.SphereGeometry(.318, 24, 18, Math.PI * .95, Math.PI * 1.1), INK, .012); hair.scale.set(.9, 1.12, .98); hair.position.set(0, .01, -.03); head.add(hair);
   [-1, 1].forEach(s => { const lock = part(new THREE.CapsuleGeometry(.055, .55, 4, 8), INK, .01); lock.position.set(s * .2, -.2, -.1); lock.rotation.z = s * .12; head.add(lock); });
-  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1fb77d });
+  const eyeMat = new THREE.MeshPhysicalMaterial({ color: 0x4e9a82, roughness: .25, clearcoat: 1 });
   const eyes = [];
   [-1, 1].forEach(s => {
     const w = part(new THREE.SphereGeometry(.058, 14, 10), 0xffffff, .008); w.scale.set(1.3, .8, .6); w.position.set(s * .105, .05, .262); head.add(w);
     const iris = new THREE.Mesh(new THREE.SphereGeometry(.03, 10, 8), eyeMat); iris.position.set(s * .105, .05, .292); head.add(iris); eyes.push(iris);
-    const brow = new THREE.Mesh(new THREE.BoxGeometry(.15, .028, .02), new THREE.MeshBasicMaterial({ color: 0x050706 })); brow.position.set(s * .108, .125, .272); brow.rotation.z = s * .38; head.add(brow);
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(.15, .028, .02), M.hair); brow.position.set(s * .108, .125, .272); brow.rotation.z = s * .38; head.add(brow);
   });
-  const nose = part(new THREE.SphereGeometry(.03, 8, 6), SKIN, .006); nose.position.set(0, -.03, .292); nose.scale.set(.8, 1.3, 1); head.add(nose);
-  const smirk = new THREE.Mesh(new THREE.TorusGeometry(.085, .013, 6, 20, Math.PI * .8), new THREE.MeshBasicMaterial({ color: 0x050706 }));
+  const nose = part(new THREE.SphereGeometry(.035, 12, 10), SKIN); nose.position.set(0, -.045, .3); nose.scale.set(.9, 1.1, 1.1); head.add(nose);
+  const smirk = new THREE.Mesh(new THREE.TorusGeometry(.085, .015, 8, 24, Math.PI * .8), new THREE.MeshStandardMaterial({ color: 0x7a4545, roughness: .45 }));
   smirk.position.set(.01, -.115, .262); smirk.rotation.z = -Math.PI * .9 + .18; head.add(smirk);
   const helmet = part(new THREE.SphereGeometry(.338, 28, 16, 0, Math.PI * 2, 0, Math.PI * .47), GOLD, .02); helmet.scale.set(.9, 1.12, .98); helmet.position.y = .035; head.add(helmet);
   const brim = part(new THREE.TorusGeometry(.298, .034, 8, 28), GOLD, .01); brim.rotation.x = Math.PI / 2; brim.scale.set(.9, .98, 1); brim.position.set(0, .17, .02); head.add(brim);
@@ -3320,7 +3634,7 @@ function main(){
   const armR = arm(-1), armL = arm(1);
   const staff = new THREE.Group(); armR.hand.add(staff);
   const rod = part(new THREE.CylinderGeometry(.04, .04, 3.1, 10), GOLD, .012); rod.position.y = .5; staff.add(rod);
-  const orbMat = new THREE.MeshBasicMaterial({ color: 0x5dffc4 });
+  const orbMat = new THREE.MeshPhysicalMaterial({ color: 0x59ffc4, emissive: 0x2be3a0, emissiveIntensity: 2.2, roughness: .08, clearcoat: 1 });
   const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(.19, 2), orbMat); orb.position.y = 2.18; staff.add(orb);
   [0, 2.1, 4.2].forEach(a => { const pr = part(new THREE.TorusGeometry(.26, .028, 6, 14, Math.PI * .8), GOLD, .008); pr.position.y = 2.08; pr.rotation.set(0, a, Math.PI * .1); staff.add(pr); });
   const orbLight = new THREE.PointLight(0x2be3a0, 4, 8, 2); orbLight.position.y = 2.2; staff.add(orbLight);
